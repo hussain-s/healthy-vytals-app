@@ -10,7 +10,9 @@
 > (never edit past entries; to change earlier files, add a new entry) · files listed are
 > exactly what to `git add` for that commit.
 >
-> **Status:** 58 commits recorded — all six phases complete.
+> **Status:** 77 commits recorded — Phases 0–6 complete; v2: M7–M9 done, M12 (AI vitals
+> assistant, incl. API + nurse UI exposure) done, M13 (vitals trends, booking UX, visual
+> refresh) done; M10 (documents) partial — trends done, documents remain; M11 remains.
 
 ---
 
@@ -2130,3 +2132,764 @@ Entry template (copy for each new commit):
 - **Satisfies:** TASKS 6.6 + project exit gate · **Rules:** DESIGN §9 (Verification), §3 · **Phase:** 6
 - **Depends on:** [57]
 - **Rationale:** Final e2e verification; fixes demo emails that EmailStr rejected (.local) so seeded accounts actually log in.
+
+## [59] c059 — docs: plan v2 scope addendum (feature depth + rich UI, M7–M11)
+
+- **Commit message:**
+  ```
+  docs: plan v2 scope addendum (feature depth + rich UI, M7-M11)
+
+  Adds the v2 scope plan after review found the web UI too thin: the domain +
+  JSON API are complete/tested for all roles, but staff dashboards were
+  placeholders and lab/messaging/documents were never in v1.
+
+  - DESIGN.md §13: v2 addendum — confirmed decisions (phased launch, stay local-
+    first; vendored Pico.css + role app shell, no build step; multi-milestone),
+    milestones M7-M11, the end-to-end cross-role acceptance narrative, and v2
+    non-goals.
+  - TASKS.md: new phases 7-11 task tables + status-summary rows.
+
+  Methodology unchanged (§9A): one functionality = one ledger slice, tests + KB in
+  lockstep. Docs-only; suite unchanged at 262 passed.
+
+  Refs: DESIGN 13, 9A.
+  ```
+- **Files (in add order):**
+  - `docs/DESIGN.md`
+  - `docs/TASKS.md`
+- **Satisfies:** (v2 planning) · **Rules:** DESIGN §13, §9A · **Phase:** 7
+- **Depends on:** [58]
+- **Rationale:** v2 plan: DESIGN §13 addendum + TASKS phases 7–11 for feature depth and rich UI.
+
+## [60] c060 — feat(web): app shell with Pico.css + role-aware sidebar (M7.1)
+
+- **Commit message:**
+  ```
+  feat(web): app shell with Pico.css + role-aware sidebar (M7.1)
+
+  Replaces the minimal hand-rolled styling with a proper app shell (DESIGN §13.1).
+
+  - static/pico.min.css: vendored Pico CSS v2.1.1 (classless framework, one file,
+    NO build step — honors §7.3/ADR-0001).
+  - base.html: loads Pico + app.css; Pico container header/footer; nav as <ul>.
+  - dashboard/_base.html: authenticated app shell — a role-aware sidebar (links
+    chosen from a per-role map; every link points at an existing route) + a
+    content area with an hgroup header; logout + role badge in the sidebar foot.
+  - app.css: rewritten as overrides on Pico — brand teal retint, the .app-shell/
+    .app-sidebar layout (responsive: stacks under 768px), role badge, metric-grid
+    for dashboard stat tiles, and the small utilities templates still use
+    (form-error, status-ok, flag, dash-note, slot-list, inline-check).
+  - landing.html: polished hero with Get-started/Log-in buttons; nav as <ul>.
+
+  Existing dashboards/pages render unchanged through the new shell (they only
+  override dash_title/dash_content). Verified: Pico linked, shell + sidebar render
+  for the doctor role, landing renders. Full suite: 262 passed (38 web).
+
+  Implements TASKS 7.1.
+  Refs: DESIGN 13.1, 7.3.
+  ```
+- **Files (in add order):**
+  - `backend/app/web/static/pico.min.css`
+  - `backend/app/web/templates/base.html`
+  - `backend/app/web/templates/dashboard/_base.html`
+  - `backend/app/web/static/app.css`
+  - `backend/app/web/templates/landing.html`
+- **Satisfies:** TASKS 7.1 · **Rules:** DESIGN §13, §7.3 · **Phase:** 7
+- **Depends on:** [59]
+- **Rationale:** Vendored Pico.css + role-aware sidebar app shell; the visual foundation for the M7 dashboards.
+- **Note:** `base.html`, `_base.html`, `app.css`, `landing.html` reappear from c009/c031, permitted by the ledger. `pico.min.css` is a vendored third-party asset (Pico v2.1.1).
+
+## [61] c061 — feat(web): real doctor worklist dashboard + open-encounter flow (M7.2, M7.3)
+
+- **Commit message:**
+  ```
+  feat(web): real doctor worklist dashboard + open-encounter flow (M7.2, M7.3)
+
+  Turns the doctor placeholder into a working control center.
+
+  - appointment_repository: scheduled_for_doctor()/scheduled_all() — display joins
+    returning view-row dicts (appointment + slot time + patient email, UTC-coerced,
+    ordered by start) so the web layer renders without lazy loads.
+  - web/router: dashboard route now builds a per-role read-only view model
+    (_dashboard_context) — doctor gets appointments/open-count/patient list;
+    scaffolding for nurse/admin/patient summaries too.
+  - web/clinical: POST /clinical/appointments/{id}/open — doctor action that opens
+    (idempotently) the encounter via clinical_service and 303-redirects to it;
+    non-doctors 403.
+  - dashboard/doctor.html: metric tiles + today's worklist table with an 'Open
+    encounter' action per actionable appointment.
+  - Aligned all dashboard <title>s to '<Role> — HealthyVytals'; updated the
+    role-landing test marker accordingly (title/badge are stable across rebuilds).
+
+  Tests (web, 3): worklist shows the booked patient+reason+action; open-encounter
+  redirects to the encounter page (diagnose/prescribe forms present); patient can't
+  open. Full suite: 265 passed.
+
+  Implements TASKS 7.2, 7.3.
+  Refs: DESIGN 13.2 (M7), 3 (B5, C2, D1), 7.6.
+  ```
+- **Files (in add order):**
+  - `backend/app/repositories/appointment_repository.py`
+  - `backend/app/web/router.py`
+  - `backend/app/web/clinical.py`
+  - `backend/app/web/templates/dashboard/doctor.html`
+  - `backend/app/web/templates/dashboard/nurse.html`
+  - `backend/app/web/templates/dashboard/admin.html`
+  - `backend/app/web/templates/dashboard/patient.html`
+  - `backend/tests/web/test_auth_web.py`
+  - `backend/tests/web/test_doctor_dashboard_web.py`
+- **Satisfies:** TASKS 7.2, 7.3 · **Rules:** DESIGN §13 (M7), §3 (B5, C2, D1), §7.6 · **Phase:** 7
+- **Depends on:** [60, 39]
+- **Rationale:** Working doctor worklist wired to existing services + open-encounter action into the consult flow.
+- **Note:** several web files reappear from earlier slices (dashboards, clinical router, appointment repo), permitted by the ledger.
+
+## [62] c062 — fix(scripts): guard Python version range and rebuild stale venv
+
+- **Commit message:**
+  ```
+  fix(scripts): guard Python version range and rebuild stale venv
+
+  Hardens setup against the two real setup failures reported from other machines.
+
+  1) Python 3.14 has no prebuilt wheels for pinned deps (pydantic-core), so pip
+     fell back to a Rust build that crashes. setup.sh/.ps1 now check BOTH bounds
+     (3.11 <= X < 3.14); if $PYTHON is unset, setup.sh auto-tries python3.13/3.12/
+     3.11/python3/python and picks the first supported one, else prints a clear
+     'install 3.11-3.13' message instead of a cryptic maturin error.
+  2) A .venv copied from another machine/OS can't execute ('cannot execute binary
+     file'). Both scripts now detect an unusable .venv and recreate it.
+
+  Also echoes the chosen interpreter/version. Verified: 3.13 accepted, 3.14
+  rejected, and a fresh setup.sh run rebuilds+migrates+seeds cleanly. Docs/tests
+  unaffected; full suite: 265 passed.
+
+  Refs: DESIGN 8, ADR-0001.
+  ```
+- **Files (in add order):**
+  - `scripts/setup.sh`
+  - `scripts/setup.ps1`
+  - `README.md`
+  - `docs/knowledge-base/runbooks/setup-and-operations.md`
+- **Satisfies:** (setup hardening) · **Rules:** DESIGN §8 · **Phase:** 7
+- **Depends on:** [11]
+- **Rationale:** Setup version guard (3.11–3.13) + stale-venv rebuild; turns two cryptic cross-machine failures into clear guidance.
+- **Note:** `scripts/setup.{sh,ps1}` reappear from c011, permitted by the ledger.
+
+## [63] c063 — feat(web): nurse ward board + triage vitals-entry UI (M7.4, M7.5)
+
+- **Commit message:**
+  ```
+  feat(web): nurse ward board + triage vitals-entry UI (M7.4, M7.5)
+
+  Turns the nurse placeholder into a working ward board and brings the vitals
+  flow (previously API-only) to the browser.
+
+  - clinical_service: extracted _ensure_encounter(appointment, actor) — creates the
+    encounter attributed to the appointment's assigned doctor regardless of who
+    triggers it, so a nurse can bring it into being during triage. open_encounter
+    keeps its doctor-ownership check and delegates to it. New
+    record_vitals_for_appointment(nurse, appointment, reading) ensures the encounter
+    then records vitals (reusing the age-flagging + audit path).
+  - web/clinical: nurse routes — POST /appointments/{id}/check-in (state machine),
+    GET/POST /appointments/{id}/vitals (form + HTMX submit → flagged result
+    partial). All nurse-gated.
+  - dashboard/nurse.html: ward board with metrics, check-in + record-vitals actions;
+    encounters/vitals_form.html + partials/vitals_result.html.
+
+  Tests: web (4) board lists appt+actions, check-in 303, nurse records vitals
+  (HTMX, flagged, persisted), patient 403; service (1) triage creates the encounter
+  (attributed to the doctor) + flags. Full suite: 270 passed.
+
+  Implements TASKS 7.4, 7.5.
+  Refs: DESIGN 13.2 (M7), 3 (B5, B6, C1), 5.5, 7.6.
+  ```
+- **Files (in add order):**
+  - `backend/app/services/clinical_service.py`
+  - `backend/app/web/clinical.py`
+  - `backend/app/web/templates/dashboard/nurse.html`
+  - `backend/app/web/templates/encounters/vitals_form.html`
+  - `backend/app/web/templates/encounters/partials/vitals_result.html`
+  - `backend/tests/web/test_nurse_dashboard_web.py`
+  - `backend/tests/services/test_clinical_service.py`
+- **Satisfies:** TASKS 7.4, 7.5 · **Rules:** DESIGN §13 (M7), §3 (B5, B6, C1), §5.5, §7.6 · **Phase:** 7
+- **Depends on:** [61, 39]
+- **Rationale:** Nurse ward board (check-in) + browser vitals-entry with age-flagging; encounter auto-created at triage.
+- **Note:** `clinical_service.py`, `web/clinical.py`, `nurse.html`, `test_clinical_service.py` reappear from earlier slices, permitted by the ledger.
+
+## [64] c064 — feat(web): admin console — user management + audit-log viewer (M7.6, M7.7)
+
+- **Commit message:**
+  ```
+  feat(web): admin console — user management + audit-log viewer (M7.6, M7.7)
+
+  Turns the admin placeholder into a real operations console (stories E1-E3).
+
+  - auth_service: list_all_users() and set_user_active(admin, user, is_active) —
+    soft activate/deactivate (never delete) with audit (user.activate/deactivate);
+    refuses self-deactivation (no lock-out); NotFound on unknown user.
+  - audit_service.list_audit(actor/patient/action filters, newest first) — the
+    read side of the append-only trail (admin-only via the route).
+  - web/admin.py: /admin/users (list + provision form + activate/deactivate) and
+    /admin/audit (filterable viewer), all _require_admin (403 otherwise). main.py
+    mounts it; admin sidebar gains Users + Audit log links.
+  - templates: dashboard/admin.html (role-count metrics + quick links),
+    admin/users.html, admin/audit.html.
+
+  Tests: web (5) dashboard counts+links, provision via console, deactivate→login
+  401 + reactivate, non-admin 403 on both pages, audit lists+filters; service (2)
+  set_user_active toggles+audits, admin-cannot-deactivate-self. Full suite: 277
+  passed.
+
+  Implements TASKS 7.6, 7.7.
+  Refs: DESIGN 13.2 (M7), 3 (E1-E3), 5.7, 6, 7.6.
+  ```
+- **Files (in add order):**
+  - `backend/app/services/auth_service.py`
+  - `backend/app/services/audit_service.py`
+  - `backend/app/web/admin.py`
+  - `backend/app/main.py`
+  - `backend/app/web/templates/dashboard/_base.html`
+  - `backend/app/web/templates/dashboard/admin.html`
+  - `backend/app/web/templates/admin/users.html`
+  - `backend/app/web/templates/admin/audit.html`
+  - `backend/tests/web/test_admin_web.py`
+  - `backend/tests/services/test_auth_service.py`
+- **Satisfies:** TASKS 7.6, 7.7 · **Rules:** DESIGN §13 (M7), §3 (E1–E3), §5.7, §6, §7.6 · **Phase:** 7
+- **Depends on:** [63, 19, 16]
+- **Rationale:** Admin user console (provision + activate/deactivate) and filterable audit-log viewer, admin-gated + audited.
+- **Note:** `auth_service.py`, `audit_service.py`, `main.py`, `_base.html`, `admin.html`, `test_auth_service.py` reappear from earlier slices, permitted by the ledger.
+
+## [65] c065 — feat(web): patient overview home + route sweep + web-UI KB (M7 complete)
+
+- **Commit message:**
+  ```
+  feat(web): patient overview home + route sweep + web-UI KB (M7 complete)
+
+  Finishes M7 (real role dashboards).
+
+  - dashboard/patient.html: overview home — upcoming-appt / active-rx / total
+    metric tiles + quick-action buttons (book, appointments, history, prescriptions).
+  - tests/web/test_web_routes_sweep.py: adds /admin/users + /admin/audit to the
+    protected-redirect sweep; asserts the patient overview content renders.
+  - knowledge-base/web-ui-map.md (+ KNOWLEDGE-INDEX link): documents every role's
+    screens, the app shell, HTMX conventions, and where each route lives.
+
+  Milestone check (live, seeded): all four roles log in to a real dashboard
+  (app-shell + metric tiles), no placeholders. Full suite: 279 passed.
+
+  Implements TASKS 7.8, 7.9, 7.10 and the M7 exit gate.
+  Refs: DESIGN 13.2 (M7), 7.3, 11.
+  ```
+- **Files (in add order):**
+  - `backend/app/web/templates/dashboard/patient.html`
+  - `backend/tests/web/test_web_routes_sweep.py`
+  - `docs/knowledge-base/web-ui-map.md`
+  - `docs/knowledge-base/KNOWLEDGE-INDEX.md`
+- **Satisfies:** TASKS 7.8, 7.9, 7.10 + M7 exit gate · **Rules:** DESIGN §13 (M7), §7.3, §11 · **Phase:** 7
+- **Depends on:** [64]
+- **Rationale:** Patient overview home + expanded route sweep + web-UI map; closes the M7 exit gate.
+- **Note:** `patient.html`, `test_web_routes_sweep.py`, `KNOWLEDGE-INDEX.md` reappear from earlier slices, permitted by the ledger.
+
+## [66] c066 — feat(models): add LabOrder and LabResult models + migration (M8.1)
+
+- **Commit message:**
+  ```
+  feat(models): add LabOrder and LabResult models + migration (M8.1)
+
+  Begins M8 (lab results & reports) with the new domain's persistence.
+
+  - app/models/lab.py: LabOrder(encounter_id, patient_id, ordered_by, test_code,
+    test_name, notes?, status default 'ordered') and LabResult(lab_order_id,
+    recorded_by, analyte, value, unit?, reference_low/high?, abnormal). Append-only
+    like other clinical records (§5.6): an order has a lifecycle string but is never
+    deleted; results are immutable once recorded. A panel accumulates multiple
+    result rows. abnormal + reference range are stored so the flag is explainable.
+  - alembic/env.py: register the lab module.
+  - migration 5f45e83bfad3 (down_revision f8d94a046c95): create both tables +
+    indexes. Autogenerated, REVIEWED per DESIGN 8 (removed a redundant duplicate
+    index during review); verified the 10-migration chain upgrades and downgrades
+    cleanly.
+
+  Tests (2): order defaults to 'ordered'; an order accumulates results with mixed
+  abnormal flags. Full suite: 281 passed.
+
+  Implements TASKS 8.1.
+  Refs: DESIGN 13.2 (M8), 4.1, 5.6, 8.
+  ```
+- **Files (in add order):**
+  - `backend/app/models/lab.py`
+  - `backend/alembic/env.py`
+  - `backend/alembic/versions/20260818_0809_5f45e83bfad3_create_lab_orders_and_lab_results_tables.py`
+  - `backend/tests/models/test_lab.py`
+- **Satisfies:** TASKS 8.1 · **Rules:** DESIGN §13 (M8), §4.1, §5.6, §8 · **Phase:** 8
+- **Depends on:** [35]
+- **Rationale:** LabOrder + LabResult append-only models + reviewed migration; the M8 persistence foundation.
+- **Note:** `alembic/env.py` reappears (registering the lab module), permitted by the ledger.
+
+## [67] c067 — feat(domain): add lab abnormal-flagging rule (M8.2)
+
+- **Commit message:**
+  ```
+  feat(domain): add lab abnormal-flagging rule (M8.2)
+
+  Adds the pure lab-result flagging rule.
+
+  - app/domain/lab_rules.py: is_abnormal(value, reference_low, reference_high) —
+    True when the value is outside the inclusive [low, high] range. Either bound may
+    be None (open-ended); both None → always normal. Pure (no framework/DB), so it
+    is unit-testable and the domain-purity guard covers it.
+
+  Tests (7): within/below/above, inclusive bounds, open-ended low + high, no-range.
+  Purity guard still green.
+
+  Implements TASKS 8.2 (flagging portion; visibility scoping reuses §5.3/§5.8 in
+  the service slice).
+  Refs: DESIGN 13.2 (M8), 7.6 (rule 3).
+  ```
+- **Files (in add order):**
+  - `backend/app/domain/lab_rules.py`
+  - `backend/tests/domain/test_lab_rules.py`
+- **Satisfies:** TASKS 8.2 · **Rules:** DESIGN §13 (M8), §7.6 (rule 3) · **Phase:** 8
+- **Depends on:** [66]
+- **Rationale:** Pure lab abnormal-flagging (value vs reference range); visibility scoping reuses §5.3/§5.8 in the service.
+
+## [68] c068 — feat(labs): order/record/view lab service + API (M8.3, M8.4)
+
+- **Commit message:**
+  ```
+  feat(labs): order/record/view lab service + API (M8.3, M8.4)
+
+  Wires the lab domain to persistence + audit and exposes it over the API.
+
+  - repositories/lab_repository.py: LabOrderRepository (list_for_patient/encounter,
+    pending) + LabResultRepository (list_for_order).
+  - services/lab_service.py: order_lab (doctor owns the encounter), record_result
+    (clinical staff only; flags abnormal via domain/lab_rules, appends result, moves
+    order → resulted), get_patient_labs (reuses treating-relationship scoping §5.3;
+    audits lab.read / lab.read_denied). All audited; append-only.
+  - schemas/lab.py + api/v1/labs.py: POST /labs/orders (doctor), POST
+    /labs/orders/{id}/results (nurse/doctor), GET /labs/patient/{id} (scoped);
+    mounted on the v1 router.
+
+  Tests: service (5) owning-doctor order, abnormal-flag + resulted, normal not
+  flagged, patient-can't-record, scoping allow/deny+audit; API (3) full flow
+  (order→abnormal result→patient views resulted), patient-can't-order 403,
+  non-treating-doctor 403. Full suite: 296 passed.
+
+  Implements TASKS 8.3, 8.4.
+  Refs: DESIGN 13.2 (M8), 5.3, 5.6, 5.7, 7.6.
+  ```
+- **Files (in add order):**
+  - `backend/app/repositories/lab_repository.py`
+  - `backend/app/services/lab_service.py`
+  - `backend/app/schemas/lab.py`
+  - `backend/app/api/v1/labs.py`
+  - `backend/app/api/router.py`
+  - `backend/tests/services/test_lab_service.py`
+  - `backend/tests/api/test_labs.py`
+- **Satisfies:** TASKS 8.3, 8.4 · **Rules:** DESIGN §13 (M8), §5.3, §5.6, §5.7, §7.6 · **Phase:** 8
+- **Depends on:** [67, 39]
+- **Rationale:** Lab service+API: order (doctor)/record (staff, flagged)/view (scoped), all audited & append-only.
+- **Note:** `api/router.py` reappears from earlier slices, permitted by the ledger.
+
+## [69] c069 — feat(web): lab UI — order/review, nurse queue, patient results (M8.5)
+
+- **Commit message:**
+  ```
+  feat(web): lab UI — order/review, nurse queue, patient results (M8.5)
+
+  Brings the lab flow to the browser across all three roles.
+
+  - web/clinical.py: doctor POST /encounters/{id}/labs (order → HTMX lab list),
+    patient GET /clinical/labs (own results), nurse GET /clinical/labs/queue
+    (pending orders) + POST /clinical/labs/{id}/results (record → HTMX result list).
+    encounter-detail context gains lab orders (_lab_rows_for_encounter).
+  - templates/labs/: mine.html, queue.html, partials/order_list.html +
+    result_list.html (abnormal flagged); encounter/detail.html gains a Labs section
+    (list + order form); sidebar adds patient 'Lab results' + nurse 'Lab queue';
+    patient dashboard gains a Lab results quick action.
+
+  Tests: web (4) doctor orders via encounter (partial), nurse queue+record abnormal,
+  patient views own labs, non-nurse queue 403; route sweep adds /clinical/labs.
+  Full suite: 301 passed.
+
+  Implements TASKS 8.5.
+  Refs: DESIGN 13.2 (M8), 7.3, 7.6 (rule 7).
+  ```
+- **Files (in add order):**
+  - `backend/app/web/clinical.py`
+  - `backend/app/web/templates/labs/mine.html`
+  - `backend/app/web/templates/labs/queue.html`
+  - `backend/app/web/templates/labs/partials/order_list.html`
+  - `backend/app/web/templates/labs/partials/result_list.html`
+  - `backend/app/web/templates/encounters/detail.html`
+  - `backend/app/web/templates/dashboard/_base.html`
+  - `backend/app/web/templates/dashboard/patient.html`
+  - `backend/tests/web/test_labs_web.py`
+  - `backend/tests/web/test_web_routes_sweep.py`
+- **Satisfies:** TASKS 8.5 · **Rules:** DESIGN §13 (M8), §7.3, §7.6 (rule 7) · **Phase:** 8
+- **Depends on:** [68, 65]
+- **Rationale:** Lab web UI across roles: doctor order/review, nurse queue+record, patient results (HTMX).
+- **Note:** `web/clinical.py`, `encounters/detail.html`, `_base.html`, `patient.html`, `test_web_routes_sweep.py` reappear from earlier slices, permitted by the ledger.
+
+## [70] c070 — test+docs(labs): M8 exit-gate integration + KB rule #9 & workflow
+
+- **Commit message:**
+  ```
+  test+docs(labs): M8 exit-gate integration + KB rule #9 & workflow
+
+  Closes M8 (lab results & reports).
+
+  - tests/api/test_lab_integration.py: the M8 acceptance narrative end to end —
+    doctor orders → nurse records an abnormal result → patient AND treating doctor
+    both see the resulted order → non-treating doctor 403; asserts the full audit
+    set (lab.order/result/read/read_denied).
+  - knowledge-base/domain/business-rules.md: Rule #9 (lab flagging + visibility) —
+    statement, why (separates order/record/view roles), edge cases, enforcement,
+    tests.
+  - knowledge-base/workflows/lab-order-to-result.md: Mermaid cross-role sequence;
+    linked from KNOWLEDGE-INDEX.
+
+  All green. Full suite: 302 passed.
+
+  Implements TASKS 8.6 and the M8 exit gate.
+  Refs: DESIGN 13.2 (M8), 11, 5.3.
+  ```
+- **Files (in add order):**
+  - `backend/tests/api/test_lab_integration.py`
+  - `docs/knowledge-base/domain/business-rules.md`
+  - `docs/knowledge-base/workflows/lab-order-to-result.md`
+  - `docs/knowledge-base/KNOWLEDGE-INDEX.md`
+- **Satisfies:** TASKS 8.6 + M8 exit gate · **Rules:** DESIGN §13 (M8), §11, §5.3 · **Phase:** 8
+- **Depends on:** [69]
+- **Rationale:** M8 exit-gate cross-role integration test + KB rule #9 and lab workflow diagram.
+
+## [71] c071 — feat(messaging): M9 patient↔care-team messaging + in-app notifications
+
+- **Commit message:**
+  ```
+  feat(messaging): M9 patient↔care-team messaging + in-app notifications
+
+  Adds v2 M9: patient ↔ care-team messaging and in-app notifications, as one
+  end-to-end vertical slice across every layer (DESIGN §13).
+
+  - models/messaging.py: MessageThread (unique per patient+staff pair) + Message
+    (append-only, §5.6). models/notification.py: Notification (derived read-model,
+    mark-read allowed).
+  - alembic 90dfe13e2800: create message_threads, messages, notifications
+    (reviewed; upgrade+downgrade verified on temp SQLite). Registered in env.py.
+  - domain/messaging_rules.can_staff_message_patient: pure care-team scope,
+    mirroring §5.3 (doctor needs treating relationship; nurse may; admin never).
+  - repositories/messaging_repository.py + notification_repository.py: DAL only.
+  - services/messaging_service.py: send (find-or-create thread, notify recipient,
+    audit message.send), list_threads, get_thread (participant-only; audits
+    message.read / message.read_denied). services/notification_service.py: the
+    single notify() choke point + list/unread_count/mark_read/mark_all_read.
+  - Event emission wired into appointment_service (booked/status-change),
+    lab_service (resulted), prescription_service (created).
+  - api/v1/messages.py: threads, thread detail, send, notifications feed,
+    mark-read, read-all. schemas/messaging.py. Registered in api/router.py.
+  - web/messaging.py + templates (inbox, thread, notification feed + HTMX
+    partials); sidebar links for patient/doctor/nurse; app.css chat/feed styles.
+  - KB: business-rules Rule #10, workflows/messaging-and-notifications.md,
+    KNOWLEDGE-INDEX updated.
+
+  All green. Full suite: 320 passed.
+
+  Implements TASKS 9.1–9.5 and the M9 exit gate.
+  Refs: DESIGN §13 (M9), §5.3, §5.6, §5.7.
+  ```
+- **Files (in add order):**
+  - `backend/app/models/messaging.py`
+  - `backend/app/models/notification.py`
+  - `backend/alembic/versions/20260905_1614_90dfe13e2800_create_messaging_and_notification_tables.py`
+  - `backend/alembic/env.py`
+  - `backend/app/domain/messaging_rules.py`
+  - `backend/app/repositories/messaging_repository.py`
+  - `backend/app/repositories/notification_repository.py`
+  - `backend/app/services/messaging_service.py`
+  - `backend/app/services/notification_service.py`
+  - `backend/app/services/appointment_service.py`
+  - `backend/app/services/lab_service.py`
+  - `backend/app/services/prescription_service.py`
+  - `backend/app/schemas/messaging.py`
+  - `backend/app/api/v1/messages.py`
+  - `backend/app/api/router.py`
+  - `backend/app/web/messaging.py`
+  - `backend/app/main.py`
+  - `backend/app/web/templates/messages/inbox.html`
+  - `backend/app/web/templates/messages/thread.html`
+  - `backend/app/web/templates/messages/partials/thread_list.html`
+  - `backend/app/web/templates/messages/partials/message_list.html`
+  - `backend/app/web/templates/notifications/feed.html`
+  - `backend/app/web/templates/notifications/partials/feed_list.html`
+  - `backend/app/web/templates/dashboard/_base.html`
+  - `backend/app/web/static/app.css`
+  - `backend/tests/domain/test_messaging_rules.py`
+  - `backend/tests/services/test_messaging_service.py`
+  - `backend/tests/services/test_notification_service.py`
+  - `backend/tests/api/test_messages.py`
+  - `backend/tests/web/test_messaging_web.py`
+  - `docs/knowledge-base/domain/business-rules.md`
+  - `docs/knowledge-base/workflows/messaging-and-notifications.md`
+  - `docs/knowledge-base/KNOWLEDGE-INDEX.md`
+  - `docs/TASKS.md`
+  - `README.md`
+- **Satisfies:** TASKS 9.1–9.5 + M9 exit gate · **Rules:** DESIGN §13 (M9), §5.3, §5.6, §5.7 · **Phase:** 9
+- **Depends on:** [70]
+- **Rationale:** M9 messaging & notifications end-to-end: care-team-scoped threads, event-driven in-app notifications, KB Rule #10 + workflow diagram.
+
+## [72] c072 — feat(llm): add LLM component layer (stub-default, opt-in real providers)
+
+- **Commit message:**
+  ```
+  feat(llm): add LLM component layer (stub-default, opt-in real providers)
+
+  Introduces core/llm: the app's first AI infrastructure, treating an LLM as a
+  system component rather than a chatbot (DESIGN §14, ADR-0006). This is the
+  worked example behind the companion book's Chapter 2.
+
+  - core/llm/client.py: LLMClient wrapping a raw call in the five disciplines —
+    output contracts (validated AssistantSchema), reliability (retry w/ exponential
+    backoff + jitter, transparent fallback model, per-request timeout), determinism
+    (input-hash cache → effective determinism), routing (triage/reasoning tiers),
+    observability (a CallRecord per call). Exhausted-chain errors preserve the
+    specific failure type (e.g. SchemaValidationError).
+  - core/llm/providers.py: Provider protocol + ProviderResult. StubProvider is the
+    DEFAULT — deterministic, offline, no SDK; resolves $ref/$defs enums so structured
+    responses validate. AnthropicProvider/OpenAIProvider are opt-in with lazily
+    imported SDKs and an actionable error when the package is missing.
+  - core/llm/errors.py: typed LLMError family (extends AppError → central HTTP map);
+    ProviderError carries `retryable`; distinct SchemaValidationError and LLMRefusal.
+  - core/llm/observability.py: CallRecord (model/tokens/latency/stop_reason/cache_hit/
+    fallback_used/attempts) logged to 'healthyvytals.llm'; CallStats aggregate. Kept
+    separate from the compliance audit trail (ADR-0005).
+  - core/llm/schemas.py: AssistantSchema base (json_schema_for_prompt + validation).
+  - core/config.py: HV_LLM_* settings (provider, api key, tier→model routing, fallback,
+    timeout, retries, cache) + model_for_tier(); .env.example documents them.
+  - tests/core/llm/test_llm_client.py: 15 offline tests across all five disciplines
+    (fake provider + stub; sleep stubbed so backoff is instant).
+
+  Default provider is the offline stub, so the app boots and the full suite runs with
+  no API key and no vendor SDK (ADR-0006, mirrors ADR-0001's SQLite default).
+  Full suite: 335 passed.
+
+  Implements TASKS 12.1–12.2. Refs: DESIGN §14, ADR-0006.
+  ```
+- **Files (in add order):**
+  - `backend/app/core/llm/__init__.py`
+  - `backend/app/core/llm/errors.py`
+  - `backend/app/core/llm/observability.py`
+  - `backend/app/core/llm/schemas.py`
+  - `backend/app/core/llm/providers.py`
+  - `backend/app/core/llm/client.py`
+  - `backend/app/core/config.py`
+  - `.env.example`
+  - `backend/tests/core/llm/__init__.py`
+  - `backend/tests/core/llm/test_llm_client.py`
+- **Satisfies:** TASKS 12.1–12.2 · **Rules:** DESIGN §14, ADR-0006 · **Phase:** 12
+- **Depends on:** [71]
+- **Rationale:** LLM component layer: contracts+reliability+determinism+routing+observability, stub-default/opt-in real providers (ADR-0006).
+
+## [73] c073 — feat(vitals): add rule-grounded AI vitals triage assistant
+
+- **Commit message:**
+  ```
+  feat(vitals): add rule-grounded AI vitals triage assistant
+
+  Adds the app's first AI-assisted use case on top of core/llm (DESIGN §14, M12,
+  Rule #11): a vitals triage assistant that produces a structured, advisory
+  VitalsAssessment to help staff prioritize recorded vitals.
+
+  - core/llm/vitals_schema.py: VitalsAssessment output contract (summary, urgency
+    enum, red_flags, recommended_action, confidence).
+  - services/vitals_assistant_service.py: composes the PURE domain rule
+    vitals_ranges.flag_out_of_range (Rule #5, ground truth) with the LLM, which only
+    explains/prioritizes the flags. Safety clamp: a flagged reading can never be
+    'routine'. Safe degradation: on LLM refusal/error, returns a rules-only
+    assessment instead of failing. Audited via record_audit (Rule #7) as
+    llm.vitals_assessed / llm.vitals_assessed_degraded.
+  - tests/services/test_vitals_assistant_service.py: 6 offline tests (ground-truth
+    wins, degradation, urgency clamp, audit rows).
+  - KB in lockstep: business-rules Rule #11, ADR-0006, workflows/vitals-assistant.md,
+    KNOWLEDGE-INDEX; DESIGN §14; TASKS Phase 12; README AI section.
+
+  Decision-support, human-in-the-loop — never diagnosis (Non-Goals). Runs offline via
+  the stub provider. Full suite: 341 passed.
+
+  Implements TASKS 12.3–12.5 and the M12 exit gate. Refs: DESIGN §14, §5.5, §5.7, ADR-0006.
+  ```
+- **Files (in add order):**
+  - `backend/app/core/llm/vitals_schema.py`
+  - `backend/app/services/vitals_assistant_service.py`
+  - `backend/tests/services/test_vitals_assistant_service.py`
+  - `docs/DESIGN.md`
+  - `docs/knowledge-base/adr/ADR-0006-llm-component-layer.md`
+  - `docs/knowledge-base/domain/business-rules.md`
+  - `docs/knowledge-base/workflows/vitals-assistant.md`
+  - `docs/knowledge-base/KNOWLEDGE-INDEX.md`
+  - `docs/TASKS.md`
+  - `README.md`
+- **Satisfies:** TASKS 12.3–12.5 + M12 exit gate · **Rules:** DESIGN §14, §5.5, §5.7, ADR-0006 · **Phase:** 12
+- **Depends on:** [72]
+- **Rationale:** AI vitals assistant: rule-grounded (Rule #5 is source of truth), human-in-the-loop, safe degradation, audited; KB Rule #11 + workflow.
+
+## [74] c074 — feat(vitals): expose AI vitals assistant via API + nurse web UI
+
+- **Commit message:**
+  ```
+  feat(vitals): expose AI vitals assistant via API + nurse web UI
+
+  Makes the M12 vitals assistant reachable by users, not just callable in code
+  (DESIGN §14.5a, Rule #11 exposure). Real backend models work automatically when
+  HV_LLM_PROVIDER + HV_LLM_API_KEY are set; the offline stub serves it otherwise.
+
+  - services/vitals_assistant_service.assess_encounter_vitals: resolves an encounter's
+    patient age + latest recorded reading, enforces the §5.3 treating-relationship rule
+    for doctors (audited llm.vitals_assessed_denied on refusal), then delegates to
+    assess_vitals. Nurses are permitted triage-wide.
+  - schemas/encounter.VitalsAssessmentOut: wire model mirroring the LLM output contract
+    (the contract is not leaked directly to clients).
+  - api/v1/encounters.py: POST /{id}/vitals-assessment (coarse nurse/doctor role gate).
+  - web/clinical.py: POST /clinical/appointments/{id}/vitals-assessment renders an HTMX
+    partial; vitals_result.html gains a 'Get AI triage assist' button + target; new
+    partial vitals_assessment.html with urgency badge + 'advisory, not a diagnosis'
+    disclaimer; urgency-badge CSS in app.css.
+  - tests: api/test_vitals_assessment.py (5 — role gate, treating-relationship deny,
+    vitals-first precondition) + web/test_vitals_assistant_web.py (3).
+  - KB in lockstep: Rule #11 (exposure + tests), workflows/vitals-assistant.md entry
+    points, DESIGN §14.5a, TASKS 12.6–12.8, README.
+
+  Runs offline via the stub; full suite: 349 passed.
+
+  Implements TASKS 12.6–12.8 and the M12 exposure gate. Refs: DESIGN §14, §5.3, §5.7.
+  ```
+- **Files (in add order):**
+  - `backend/app/services/vitals_assistant_service.py`
+  - `backend/app/schemas/encounter.py`
+  - `backend/app/api/v1/encounters.py`
+  - `backend/app/web/clinical.py`
+  - `backend/app/web/templates/encounters/partials/vitals_result.html`
+  - `backend/app/web/templates/encounters/partials/vitals_assessment.html`
+  - `backend/app/web/static/app.css`
+  - `backend/tests/api/test_vitals_assessment.py`
+  - `backend/tests/web/test_vitals_assistant_web.py`
+  - `docs/DESIGN.md`
+  - `docs/knowledge-base/domain/business-rules.md`
+  - `docs/knowledge-base/workflows/vitals-assistant.md`
+  - `docs/TASKS.md`
+  - `README.md`
+- **Satisfies:** TASKS 12.6–12.8 + M12 exposure gate · **Rules:** DESIGN §14, §5.3, §5.7 · **Phase:** 12
+- **Depends on:** [73]
+- **Rationale:** Expose the vitals assistant to users: API endpoint + nurse HTMX panel, §5.3 authz, real-model-when-keyed; docs/ledger in lockstep.
+
+## [75] c075 — feat(vitals): vitals trend charts on history (Chart.js, scoped read)
+
+- **Commit message:**
+  ```
+  feat(vitals): vitals trend charts on history (Chart.js, scoped read)
+
+  Plots a patient's vitals over time on the medical-history page (DESIGN §15.1, M13,
+  completes M10.4; Rule #12, ADR-0007).
+
+  - repositories/encounter_repository.vitals_for_patient: join vitals via the owning
+    encounter, oldest-first.
+  - services/clinical_service.get_vitals_series: same authorization + consent gate as
+    reading history (can_view_patient_history + is_encounter_visible), audited
+    vitals_series.read / read_denied.
+  - api/v1/patients.py: GET /patients/{id}/vitals-series -> VitalsSeriesOut; registered
+    in api/router. schemas/encounter: VitalsPoint + VitalsSeriesOut.
+  - Vendored Chart.js UMD (app/web/static/chart.umd.min.js) — one static file, no build
+    (ADR-0007). base.html gains a head_extra block; history.html renders a canvas + init
+    script (progressive enhancement: raw vitals stay listed if JS/fetch fails or <2 pts).
+  - app.css: chart-frame styles. KB: Rule #12, ADR-0007, workflows/vitals-trends.md,
+    KNOWLEDGE-INDEX; DESIGN §15.1; TASKS 10.4/13.1-13.2.
+  - tests: api/test_vitals_series.py (4), web/test_vitals_trends_web.py (1).
+
+  Runs offline; full suite green. Refs: DESIGN §15, §5.3, §5.8, ADR-0007.
+  ```
+- **Files (in add order):**
+  - `backend/app/repositories/encounter_repository.py`
+  - `backend/app/services/clinical_service.py`
+  - `backend/app/schemas/encounter.py`
+  - `backend/app/api/v1/patients.py`
+  - `backend/app/api/router.py`
+  - `backend/app/web/static/chart.umd.min.js`
+  - `backend/app/web/templates/base.html`
+  - `backend/app/web/templates/encounters/history.html`
+  - `backend/app/web/static/app.css`
+  - `backend/tests/api/test_vitals_series.py`
+  - `backend/tests/web/test_vitals_trends_web.py`
+  - `docs/knowledge-base/adr/ADR-0007-client-charting-vendored-chartjs.md`
+  - `docs/knowledge-base/domain/business-rules.md`
+  - `docs/knowledge-base/workflows/vitals-trends.md`
+  - `docs/knowledge-base/KNOWLEDGE-INDEX.md`
+  - `docs/DESIGN.md`
+  - `docs/TASKS.md`
+  - `README.md`
+- **Satisfies:** TASKS 10.4, 13.1–13.2 · **Rules:** DESIGN §15, §5.3, §5.8, ADR-0007 · **Phase:** 13
+- **Depends on:** [74]
+- **Rationale:** Vitals trend charts: scoped series endpoint + vendored Chart.js on history page.
+
+## [76] c076 — feat(appointments): show times/doctor + patient cancel on My Appointments
+
+- **Commit message:**
+  ```
+  feat(appointments): show times/doctor + patient cancel on My Appointments
+
+  Improves the existing Phase-2 booking flow (DESIGN §15.2, M13) without rebuilding the
+  service.
+
+  - repositories/appointment_repository: scheduled_for_patient + _scheduled now aliases
+    User twice (patient + doctor email) and carries cancelled_late.
+  - web/appointments.py: my_appointments uses the display join; new POST /{id}/cancel
+    delegates to appointment_service.change_status(CANCEL) (ownership + state machine +
+    slot freeing + late flag + audit already enforced there) and re-renders the list.
+  - templates: mine.html + new partials/appointment_list.html (time, doctor, status pill,
+    HTMX cancel with confirm); polished book.html (grouped slots, formatted times).
+  - app.css: status pills, btn-sm, empty-state.
+  - tests: 2 new in web/test_appointments_web.py (time+doctor+cancel shown; cancel flow).
+
+  Full suite green. Refs: DESIGN §15, §5.1, §5.2.
+  ```
+- **Files (in add order):**
+  - `backend/app/repositories/appointment_repository.py`
+  - `backend/app/web/appointments.py`
+  - `backend/app/web/templates/appointments/mine.html`
+  - `backend/app/web/templates/appointments/partials/appointment_list.html`
+  - `backend/app/web/templates/appointments/book.html`
+  - `backend/app/web/static/app.css`
+  - `backend/tests/web/test_appointments_web.py`
+  - `docs/DESIGN.md`
+  - `docs/TASKS.md`
+  - `README.md`
+- **Satisfies:** TASKS 13.3 · **Rules:** DESIGN §15, §5.1, §5.2 · **Phase:** 13
+- **Depends on:** [75]
+- **Rationale:** Booking UX: My Appointments shows time/doctor/status + in-place cancel; polished book page.
+
+## [77] c077 — style(ui): cohesive visual refresh within the Pico shell (M13)
+
+- **Commit message:**
+  ```
+  style(ui): cohesive visual refresh within the Pico shell (M13)
+
+  A visual refresh (DESIGN §15.3, M13), pure CSS + template tweaks, no build step
+  (ADR-0001 intact).
+
+  - app.css: richer teal token ramp, elevation/shadow scale, larger radius, gradient
+    hero, card polish, refined sidebar, active-nav styling, and dark-mode parity. Every
+    pre-existing selector preserved.
+  - dashboard/_base.html: sidebar marks the current section aria-current=page (url_for
+    cast to str; matches by exact/prefix path).
+  - DESIGN §15.3; README v2 note.
+
+  Route-sweep + full suite green (356). Refs: DESIGN §15, ADR-0001.
+  ```
+- **Files (in add order):**
+  - `backend/app/web/static/app.css`
+  - `backend/app/web/templates/dashboard/_base.html`
+  - `docs/DESIGN.md`
+  - `README.md`
+- **Satisfies:** TASKS 13.4 · **Rules:** DESIGN §15, ADR-0001 · **Phase:** 13
+- **Depends on:** [76]
+- **Rationale:** Visual refresh: design tokens, elevation, active-nav, status pills, dark-mode — no build step.

@@ -34,6 +34,14 @@
 | 4 | Prescriptions & safety | ✅ Done (7 slices c044–c050; exit gate met) |
 | 5 | Knowledge base authoring | ✅ Done (authored in lockstep + finalized c051–c053) |
 | 6 | Tests, seed data, polish | ✅ Done (5 slices c054–c058; project exit gate met) |
+| — | **v2 addendum (DESIGN §13)** | — |
+| 7 | Real role dashboards + UI shell | ✅ Done (c060–c065; all roles live) |
+| 8 | Lab results & reports (new domain) | ✅ Done (c066–c070; exit gate met) |
+| 9 | Messaging & in-app notifications | ✅ Done (c071; exit gate met) |
+| 12 | AI vitals assistant + LLM component layer (§14) | ✅ Done (c072–c074; exit gate met) |
+| 13 | Vitals trends, booking UX & visual refresh (§15) | ✅ Done (c075–c077; exit gate met) |
+| 10 | Documents & vitals trends | ⬜ Not Started |
+| 11 | v2 polish, rich seed, e2e verification | ⬜ Not Started |
 
 **Blockers / decisions needed before Phase 0 can complete:**
 - ✅ **Open decisions (`DESIGN.md` §12) CONFIRMED (2026-08-08):** frontend = **Jinja2 + HTMX (no Node)**; **SQLite** default (Postgres opt-in); **Admin included**; scope = **Epics A–E**; migrations = **Alembic** + one-command wrapper. No decision blockers remain.
@@ -204,6 +212,101 @@ work proceeds normally; commits are journaled instead of executed.
 | 6.5 | Rewrite stale `~/shared/webapp/PROJECT-BRIEF.md` to match | ✅ | rewritten for HealthyVytals · Ledger c057 |
 | 6.6 | Final end-to-end verification (DESIGN.md §"Verification") | ✅ | fresh migrate+seed+boot; all 4 roles log in, seeded journey visible · Ledger c058 (fixed .local email bug) |
 | **Exit** | Fresh clone → one command → seeded, working app; all tests green | ✅ | verified; 262 tests green · Ledger c058 |
+
+---
+
+## 8b. Phase 7 — Real role dashboards + UI shell (DESIGN §13, M7)
+
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 7.1 | App shell: vendored Pico.css + role-aware sidebar layout in `base.html`/`_base.html` | ✅ | Pico v2.1.1 vendored; app-shell + sidebar · Ledger c060 |
+| 7.2 | Doctor dashboard: today's worklist + treated-patient list (wire existing services) | ✅ | B5, C5 · metrics + worklist table · Ledger c061 |
+| 7.3 | Doctor: open-encounter entry from dashboard (review vitals → diagnose → prescribe) | ✅ | C2, D1 · `POST /clinical/appointments/{id}/open` · Ledger c061 |
+| 7.4 | Nurse dashboard: ward board (today's appointments) + check-in action | ✅ | B5, B6 · ward board + check-in · Ledger c063 |
+| 7.5 | Nurse: vitals-entry UI (currently API-only) | ✅ | C1, §5.5 · HTMX form + flagged result · Ledger c063 |
+| 7.6 | Admin: user console (list / provision / activate-deactivate) | ✅ | E1 · `/admin/users` · Ledger c064 |
+| 7.7 | Admin: audit-log viewer with filters (by user/patient/action) | ✅ | E2, E3, §5.7 · `/admin/audit` · Ledger c064 |
+| 7.8 | Patient overview home (upcoming appts, active rx, recent activity) | ✅ | metric tiles + quick actions · Ledger c065 |
+| 7.9 | Web route-test sweep for the new role pages | ✅ | admin routes + patient home · Ledger c065 |
+| 7.10 | KB update: web-UI map / role-screens note | ✅ | `kb/web-ui-map.md` · Ledger c065 |
+| **Exit** | Each role logs in to a working control center (no placeholders) | ✅ | live-verified all 4 roles · Ledger c065 |
+
+## 8c. Phase 8 — Lab results & reports (DESIGN §13, M8)
+
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 8.1 | `LabOrder` + `LabResult` models (+ migration) | ✅ | `models/lab.py` + migration · 2 tests · Ledger c066 |
+| 8.2 | Domain: result abnormal-flagging + visibility (reuse §5.3 scoping, §5.8 consent) | ✅ | `domain/lab_rules.py` · 7 tests · Ledger c067 (visibility reused in service) |
+| 8.3 | Service: order lab (doctor) / record result (nurse/lab) / view (scoped) + audit | ✅ | `lab_service` + `lab_repository` · 5 tests · Ledger c068 |
+| 8.4 | API endpoints (order, record, list by encounter/patient) | ✅ | `/api/v1/labs/*` · 3 tests · Ledger c068 |
+| 8.5 | Web: doctor orders + reviews; nurse records; patient views results | ⬜ | HTMX |
+| 8.6 | Tests (domain/service/api/web) + KB business rule + workflow diagram | ✅ | rule #9 + workflow + integration · Ledger c070 |
+| **Exit** | Doctor orders → result recorded → patient & doctor view (abnormal flagged) | ✅ | integration test green · Ledger c070 |
+
+## 8d. Phase 9 — Messaging & in-app notifications (DESIGN §13, M9)
+
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 9.1 | `Message`/thread + `Notification` models (+ migration) | ✅ | `models/messaging.py`, `models/notification.py` + rev `90dfe13e2800` · Ledger c071 |
+| 9.2 | Service: send/list messages (care-team scoped); emit notifications on events | ✅ | `messaging_service` + `notification_service`; emission wired into appt/lab/rx paths · Ledger c071 |
+| 9.3 | API endpoints (threads, messages, notifications read/mark-read) | ✅ | `api/v1/messages.py` · Ledger c071 |
+| 9.4 | Web: message thread UI + notification feed (HTMX) in the app shell | ✅ | `web/messaging.py` + templates; sidebar links added · Ledger c071 |
+| 9.5 | Tests + KB | ✅ | domain/service/api/web tests; Rule #10 + workflow diagram · Ledger c071 |
+| **Exit** | Patient ↔ care-team messaging works; domain events raise notifications | ✅ | milestone gate — 320 tests green |
+
+## 8e. Phase 10 — Documents & vitals trends (DESIGN §13, M10)
+
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 10.1 | `Document` model + local (git-ignored) storage + migration | ⬜ | upload/download |
+| 10.2 | Service + API: upload/list/download, scoped | ⬜ | |
+| 10.3 | Web: patient document area | ⬜ | |
+| 10.4 | Vitals trend charts on history page | ✅ | Done c075 (M13) — Chart.js vendored per ADR-0007 (superseded the inline-SVG sketch) |
+| 10.5 | Tests + KB | ⬜ | |
+| **Exit** | Patient uploads/downloads docs; vitals trends render over time | ⬜ | milestone gate |
+
+## 8f. Phase 11 — v2 polish, rich seed, e2e verification (DESIGN §13, M11)
+
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 11.1 | Seed the new domains (labs/messages/notifications/docs) for a full cross-role demo | ⬜ | |
+| 11.2 | Cross-role e2e integration test (the §13.3 narrative) | ⬜ | |
+| 11.3 | README + KB finalize for v2 | ⬜ | |
+| 11.4 | Final v2 end-to-end verification | ⬜ | project gate |
+| **Exit** | Fresh clone → one command → full-featured app, all roles, all tests green | ⬜ | v2 gate |
+
+---
+
+## 8g. Phase 12 — AI vitals assistant & LLM component layer (DESIGN §14, M12)
+
+> The companion book's Chapter 2 worked example: wire an LLM into the app **as a system
+> component**. Default provider is an offline deterministic stub, so the whole suite runs with
+> no API key/SDK (ADR-0006). See Rule #11 + workflows/vitals-assistant.md.
+
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 12.1 | `core/llm` component layer: client (5 disciplines), providers (stub-default + opt-in anthropic/openai), errors, observability, schema base | ✅ | c072; offline-testable |
+| 12.2 | LLM settings in `core/config` (provider, api key, tier→model routing, timeout/retries/cache) + `.env.example` | ✅ | c072 |
+| 12.3 | `VitalsAssessment` output contract + `vitals_assistant_service` (rule-grounded, safe degradation, safety clamp, audit) | ✅ | c073 |
+| 12.4 | Tests: component layer (15) + service (6), all offline/deterministic | ✅ | c072–c073; full suite 341 green |
+| 12.5 | KB: Rule #11, ADR-0006, workflows/vitals-assistant.md, KNOWLEDGE-INDEX; DESIGN §14; README | ✅ | c072–c073 (lockstep) |
+| 12.6 | Expose to users: API `POST /encounters/{id}/vitals-assessment` + `VitalsAssessmentOut`; service `assess_encounter_vitals` (age+latest reading, §5.3 authz) | ✅ | c074 |
+| 12.7 | Nurse web UI: HTMX "Get AI triage assist" panel on the vitals screen + urgency-badge CSS | ✅ | c074 |
+| 12.8 | Tests: API (5) + web (3) for the exposed endpoints; docs/ledger in lockstep | ✅ | c074; full suite 349 green |
+| **Exit** | Vitals → structured advisory assessment, reachable via API **and** nurse UI; rule stays source of truth; real model works when keyed; offline by default; audited; suite green | ✅ | milestone gate — 349 tests green |
+
+---
+
+## 8h. Phase 13 — Vitals trends, booking UX & visual refresh (DESIGN §15, M13)
+
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 13.1 | Vitals-series read: `clinical_service.get_vitals_series` + `encounter_repository.vitals_for_patient` (scoped like history, §5.3/§5.8, audited) | ✅ | c075; Rule #12 |
+| 13.2 | `GET /api/v1/patients/{id}/vitals-series` + `VitalsSeriesOut`; vendor Chart.js + ADR-0007; chart on history page (progressive enhancement) | ✅ | c075 |
+| 13.3 | Booking UX: "My appointments" shows slot time + doctor + status pill (`scheduled_for_patient`); patient cancel via HTMX (`change_status` CANCEL); polished book page | ✅ | c076 |
+| 13.4 | Visual refresh within the Pico shell: design tokens, elevation, hero, active-nav, status pills, dark-mode parity (no build step) | ✅ | c077 |
+| 13.5 | Tests (vitals-series 4 + trends-web 1 + appointments 2) + KB (Rule #12, ADR-0007, workflows/vitals-trends.md) + README | ✅ | c075–c077; full suite 356 green |
+| **Exit** | Patient sees vitals trends; improved booking with cancel; refreshed UI; all scoped/audited; suite green | ✅ | milestone gate — 356 tests green |
 
 ---
 

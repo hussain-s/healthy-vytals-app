@@ -20,7 +20,11 @@
   #1 appointment state machine (§5.1) · #2 slot conflict/buffer/cutoff (§5.2) ·
   #3 treating-relationship scoping (§5.3) · #4 prescription safety (§5.4) ·
   #5 age-based vitals ranges (§5.5) · #6 append-only records (§5.6) ·
-  #7 mandatory audit (§5.7) · #8 consent gating (§5.8).
+  #7 mandatory audit (§5.7) · #8 consent gating (§5.8) ·
+  #9 lab flagging & visibility (§13, M8) ·
+  #10 care-team messaging & notifications (§13, M9) ·
+  #11 AI vitals assistant — rule-grounded, human-in-the-loop (§14, M12) ·
+  #12 vitals-trends read scoping (§15, M13).
 - **[domain/glossary.md](domain/glossary.md)** — ubiquitous language (note the
   appointment-vs-encounter distinction).
 - **[domain/access-matrix.md](domain/access-matrix.md)** — roles × actions with
@@ -32,6 +36,8 @@
 - [ADR-0003](adr/ADR-0003-authentication-and-authorization.md) — JWT + bcrypt, RBAC
 - [ADR-0004](adr/ADR-0004-layered-architecture.md) — layered, pure domain
 - [ADR-0005](adr/ADR-0005-audit-strategy.md) — audit strategy
+- [ADR-0006](adr/ADR-0006-llm-component-layer.md) — LLM as a system component (stub-default, opt-in real)
+- [ADR-0007](adr/ADR-0007-client-charting-vendored-chartjs.md) — client charting via vendored Chart.js (no build step)
 
 ## Data & API
 - **[data/erd.md](data/erd.md)** — entity-relationship diagram + rationale (16 tables).
@@ -44,6 +50,14 @@
 - [appointment-lifecycle](workflows/appointment-lifecycle.md) — cancel/no-show (B4, B6)
 - [triage-to-consult](workflows/triage-to-consult.md) (C1–C5)
 - [prescribe](workflows/prescribe.md) — with safety checks (D1–D5)
+- [lab-order-to-result](workflows/lab-order-to-result.md) — labs, cross-role (v2 M8)
+- [messaging-and-notifications](workflows/messaging-and-notifications.md) — care-team messaging + event notifications (v2 M9)
+- [vitals-assistant](workflows/vitals-assistant.md) — AI vitals triage assistant, rule-grounded + human-in-the-loop (v2 M12)
+- [vitals-trends](workflows/vitals-trends.md) — vitals trend charts (Chart.js, scoped like history) (v2 M13)
+
+## Web UI
+- **[web-ui-map.md](web-ui-map.md)** — the server-rendered role screens (patient/
+  nurse/doctor/admin), the app shell, HTMX conventions, and where each route lives.
 
 ## Operations
 - **[runbooks/setup-and-operations.md](runbooks/setup-and-operations.md)** — setup,
@@ -54,6 +68,9 @@
 backend/app/
   core/        config, security (JWT/bcrypt), roles, deps (get_current_user,
                require_roles), errors + exceptions, audit context
+  core/llm/    LLM component layer (ADR-0006): LLMClient (contracts, reliability,
+               determinism, routing, observability), providers (stub-default/opt-in),
+               output-contract schemas ← the book's Chapter 2 example
   domain/      PURE rules: appointment_state, scheduling_rules, vitals_ranges,
                access_scope, prescription_safety   ← the KB's business-rules map here
   services/    use cases: auth, appointment, clinical, prescription, audit

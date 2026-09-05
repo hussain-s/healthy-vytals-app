@@ -1,7 +1,10 @@
 # Runbook — setup, seed, reset, troubleshooting
 
 Operational how-to for running HealthyVytals locally. Prerequisite: **Python
-3.11+** only (no Node, no Docker). See also the top-level [README](../../../README.md).
+3.11–3.13** only (no Node, no Docker; 3.14+ not yet supported — no dep wheels).
+`setup.sh` auto-picks a supported interpreter (or honors `PYTHON=...`), rejects
+out-of-range versions with a clear message, and rebuilds a stale/copied `.venv`.
+See also the top-level [README](../../../README.md).
 
 ## First-time setup
 ```bash

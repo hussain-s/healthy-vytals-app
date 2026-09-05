@@ -17,8 +17,18 @@
         "backend/requirements.txt",
         "backend/pyproject.toml"
       ],
-      "task_ids": ["0.1", "0.2", "0.17"],
-      "rule_refs": ["§7.5", "§8", "§12.1", "§12.2", "§12.5"],
+      "task_ids": [
+        "0.1",
+        "0.2",
+        "0.17"
+      ],
+      "rule_refs": [
+        "§7.5",
+        "§8",
+        "§12.1",
+        "§12.2",
+        "§12.5"
+      ],
       "phase": 0,
       "rationale": "Root scaffolding + pinned deps + tool config — the base every later slice builds on.",
       "depends_on": []
@@ -38,11 +48,21 @@
         "backend/tests/core/__init__.py",
         "backend/tests/core/test_config.py"
       ],
-      "task_ids": ["0.3", "0.11"],
-      "rule_refs": ["§7.2", "§8", "§5.2", "§12.2"],
+      "task_ids": [
+        "0.3",
+        "0.11"
+      ],
+      "rule_refs": [
+        "§7.2",
+        "§8",
+        "§5.2",
+        "§12.2"
+      ],
       "phase": 0,
       "rationale": "Central env-driven config with SQLite default + production secret guard; every layer reads settings from here.",
-      "depends_on": [1]
+      "depends_on": [
+        1
+      ]
     },
     {
       "seq": 3,
@@ -55,11 +75,20 @@
         "backend/app/core/roles.py",
         "backend/tests/core/test_roles.py"
       ],
-      "task_ids": ["0.4"],
-      "rule_refs": ["§6", "§2", "§5.3", "§5.7"],
+      "task_ids": [
+        "0.4"
+      ],
+      "rule_refs": [
+        "§6",
+        "§2",
+        "§5.3",
+        "§5.7"
+      ],
       "phase": 0,
       "rationale": "Authoritative roles + RBAC groupings underpinning every guard in Phase 1.",
-      "depends_on": [2]
+      "depends_on": [
+        2
+      ]
     },
     {
       "seq": 4,
@@ -73,11 +102,18 @@
         "backend/tests/core/test_security.py",
         "backend/requirements.txt"
       ],
-      "task_ids": ["0.5"],
-      "rule_refs": ["§3", "§7.2"],
+      "task_ids": [
+        "0.5"
+      ],
+      "rule_refs": [
+        "§3",
+        "§7.2"
+      ],
       "phase": 0,
       "rationale": "Password hashing + typed JWTs (access/refresh) — the crypto boundary auth flows build on.",
-      "depends_on": [2]
+      "depends_on": [
+        2
+      ]
     },
     {
       "seq": 5,
@@ -94,11 +130,22 @@
         "backend/tests/db/__init__.py",
         "backend/tests/db/test_session.py"
       ],
-      "task_ids": ["0.6", "0.11"],
-      "rule_refs": ["§7.2", "§7.6", "§8", "§5.6", "§12.2"],
+      "task_ids": [
+        "0.6",
+        "0.11"
+      ],
+      "rule_refs": [
+        "§7.2",
+        "§7.6",
+        "§8",
+        "§5.6",
+        "§12.2"
+      ],
       "phase": 0,
       "rationale": "Declarative Base + mixins + transactional session — the persistence foundation for all models/repositories.",
-      "depends_on": [2]
+      "depends_on": [
+        2
+      ]
     },
     {
       "seq": 6,
@@ -116,11 +163,20 @@
         "backend/tests/api/__init__.py",
         "backend/tests/api/test_health.py"
       ],
-      "task_ids": ["0.8", "0.11"],
-      "rule_refs": ["§7.1", "§7.6", "§8"],
+      "task_ids": [
+        "0.8",
+        "0.11"
+      ],
+      "rule_refs": [
+        "§7.1",
+        "§7.6",
+        "§8"
+      ],
       "phase": 0,
       "rationale": "Runnable FastAPI app with a versioned router and a DB-aware health probe.",
-      "depends_on": [5]
+      "depends_on": [
+        5
+      ]
     },
     {
       "seq": 7,
@@ -138,11 +194,18 @@
         "backend/tests/schemas/test_common.py",
         "backend/tests/core/test_errors.py"
       ],
-      "task_ids": ["0.9", "0.11"],
-      "rule_refs": ["§7.6"],
+      "task_ids": [
+        "0.9",
+        "0.11"
+      ],
+      "rule_refs": [
+        "§7.6"
+      ],
       "phase": 0,
       "rationale": "Standard Page[T]/ErrorResponse envelopes + typed domain errors mapped to stable HTTP codes.",
-      "depends_on": [6]
+      "depends_on": [
+        6
+      ]
     },
     {
       "seq": 8,
@@ -157,11 +220,19 @@
         "backend/tests/repositories/__init__.py",
         "backend/tests/repositories/test_base.py"
       ],
-      "task_ids": ["0.10", "0.11"],
-      "rule_refs": ["§7.6", "§5.6"],
+      "task_ids": [
+        "0.10",
+        "0.11"
+      ],
+      "rule_refs": [
+        "§7.6",
+        "§5.6"
+      ],
       "phase": 0,
       "rationale": "Generic Repository[Model] CRUD base confining all DB queries to the DAL.",
-      "depends_on": [5]
+      "depends_on": [
+        5
+      ]
     },
     {
       "seq": 9,
@@ -183,11 +254,22 @@
         "backend/tests/web/__init__.py",
         "backend/tests/web/test_landing.py"
       ],
-      "task_ids": ["0.12", "0.13", "0.11"],
-      "rule_refs": ["§7.3", "§7.6", "§8", "§12.1"],
+      "task_ids": [
+        "0.12",
+        "0.13",
+        "0.11"
+      ],
+      "rule_refs": [
+        "§7.3",
+        "§7.6",
+        "§8",
+        "§12.1"
+      ],
       "phase": 0,
       "rationale": "Server-rendered Jinja2+HTMX bootstrap proving the buildless single-process UI stack.",
-      "depends_on": [6]
+      "depends_on": [
+        6
+      ]
     },
     {
       "seq": 10,
@@ -204,11 +286,18 @@
         "scripts/migrate.sh",
         "scripts/migrate.ps1"
       ],
-      "task_ids": ["0.7"],
-      "rule_refs": ["§8", "§12.5"],
+      "task_ids": [
+        "0.7"
+      ],
+      "rule_refs": [
+        "§8",
+        "§12.5"
+      ],
       "phase": 0,
       "rationale": "Alembic wired to app settings + Base.metadata, behind one-command migrate wrappers.",
-      "depends_on": [5]
+      "depends_on": [
+        5
+      ]
     },
     {
       "seq": 11,
@@ -230,11 +319,22 @@
         "Makefile",
         "README.md"
       ],
-      "task_ids": ["0.14", "0.15", "0.16", "0.18"],
-      "rule_refs": ["§8", "§9"],
+      "task_ids": [
+        "0.14",
+        "0.15",
+        "0.16",
+        "0.18"
+      ],
+      "rule_refs": [
+        "§8",
+        "§9"
+      ],
       "phase": 0,
       "rationale": "One-command-per-OS setup/dev/seed/reset workflow + README; closes the Phase 0 exit gate.",
-      "depends_on": [9, 10]
+      "depends_on": [
+        9,
+        10
+      ]
     },
     {
       "seq": 12,
@@ -250,11 +350,21 @@
         "backend/tests/models/__init__.py",
         "backend/tests/models/test_user.py"
       ],
-      "task_ids": ["1.1"],
-      "rule_refs": ["§4.1", "§3", "§8"],
+      "task_ids": [
+        "1.1"
+      ],
+      "rule_refs": [
+        "§4.1",
+        "§3",
+        "§8"
+      ],
       "phase": 1,
       "rationale": "Base User account (email/hash/role/is_active) + first reviewed Alembic migration.",
-      "depends_on": [3, 5, 10]
+      "depends_on": [
+        3,
+        5,
+        10
+      ]
     },
     {
       "seq": 13,
@@ -269,11 +379,18 @@
         "backend/alembic/versions/20260808_2234_dffddd069d87_create_role_profile_tables.py",
         "backend/tests/models/test_profile.py"
       ],
-      "task_ids": ["1.2"],
-      "rule_refs": ["§4.1", "§8"],
+      "task_ids": [
+        "1.2"
+      ],
+      "rule_refs": [
+        "§4.1",
+        "§8"
+      ],
       "phase": 1,
       "rationale": "1:1 patient/doctor/nurse profiles (shared-PK) extending User with role-specific attributes.",
-      "depends_on": [12]
+      "depends_on": [
+        12
+      ]
     },
     {
       "seq": 14,
@@ -288,11 +405,19 @@
         "backend/requirements.txt",
         "backend/tests/schemas/test_auth.py"
       ],
-      "task_ids": ["1.3"],
-      "rule_refs": ["§3", "§7.6"],
+      "task_ids": [
+        "1.3"
+      ],
+      "rule_refs": [
+        "§3",
+        "§7.6"
+      ],
       "phase": 1,
       "rationale": "Auth/user Pydantic schemas; UserOut enforces the no-PHI/no-hash serialization boundary.",
-      "depends_on": [7, 12]
+      "depends_on": [
+        7,
+        12
+      ]
     },
     {
       "seq": 15,
@@ -306,10 +431,16 @@
         "backend/tests/repositories/test_user_repository.py"
       ],
       "task_ids": [],
-      "rule_refs": ["§7.6", "§3"],
+      "rule_refs": [
+        "§7.6",
+        "§3"
+      ],
       "phase": 1,
       "rationale": "User DAL (get_by_email, email_exists) that the register/login services depend on.",
-      "depends_on": [8, 12]
+      "depends_on": [
+        8,
+        12
+      ]
     },
     {
       "seq": 16,
@@ -328,11 +459,21 @@
         "backend/tests/services/__init__.py",
         "backend/tests/services/test_audit_service.py"
       ],
-      "task_ids": ["1.10", "1.11"],
-      "rule_refs": ["§5.7", "§4.1", "§3", "§8"],
+      "task_ids": [
+        "1.10",
+        "1.11"
+      ],
+      "rule_refs": [
+        "§5.7",
+        "§4.1",
+        "§3",
+        "§8"
+      ],
       "phase": 1,
       "rationale": "Append-only AuditLog + transactional record_audit choke point for the mandatory audit trail.",
-      "depends_on": [12]
+      "depends_on": [
+        12
+      ]
     },
     {
       "seq": 17,
@@ -349,11 +490,22 @@
         "backend/tests/services/test_auth_service.py",
         "backend/tests/api/test_auth.py"
       ],
-      "task_ids": ["1.4", "1.11"],
-      "rule_refs": ["§3", "§5.7", "§7.6"],
+      "task_ids": [
+        "1.4",
+        "1.11"
+      ],
+      "rule_refs": [
+        "§3",
+        "§5.7",
+        "§7.6"
+      ],
       "phase": 1,
       "rationale": "Audited patient registration endpoint + the auth service (register/login) it builds on.",
-      "depends_on": [14, 15, 16]
+      "depends_on": [
+        14,
+        15,
+        16
+      ]
     },
     {
       "seq": 18,
@@ -370,11 +522,22 @@
         "backend/tests/services/test_auth_service.py",
         "backend/tests/api/test_auth.py"
       ],
-      "task_ids": ["1.6", "1.7", "1.8", "1.9"],
-      "rule_refs": ["§3", "§7.3", "§7.6"],
+      "task_ids": [
+        "1.6",
+        "1.7",
+        "1.8",
+        "1.9"
+      ],
+      "rule_refs": [
+        "§3",
+        "§7.3",
+        "§7.6"
+      ],
       "phase": 1,
       "rationale": "Login/refresh/me endpoints + get_current_user (Bearer/cookie) + require_roles guard.",
-      "depends_on": [17]
+      "depends_on": [
+        17
+      ]
     },
     {
       "seq": 19,
@@ -390,11 +553,19 @@
         "backend/tests/services/test_auth_service.py",
         "backend/tests/api/test_users.py"
       ],
-      "task_ids": ["1.5"],
-      "rule_refs": ["§3", "§6", "§5.7"],
+      "task_ids": [
+        "1.5"
+      ],
+      "rule_refs": [
+        "§3",
+        "§6",
+        "§5.7"
+      ],
       "phase": 1,
       "rationale": "Admin-only staff provisioning (role-appropriate profile + audit), exercising the RBAC guard end to end.",
-      "depends_on": [18]
+      "depends_on": [
+        18
+      ]
     },
     {
       "seq": 20,
@@ -407,11 +578,18 @@
         "backend/app/db/seed.py",
         "backend/tests/db/test_seed.py"
       ],
-      "task_ids": ["1.12"],
-      "rule_refs": ["§3", "§8"],
+      "task_ids": [
+        "1.12"
+      ],
+      "rule_refs": [
+        "§3",
+        "§8"
+      ],
       "phase": 1,
       "rationale": "Idempotent demo seed (one user per role) making the app demoable on first run.",
-      "depends_on": [19]
+      "depends_on": [
+        19
+      ]
     },
     {
       "seq": 21,
@@ -425,11 +603,20 @@
         "docs/knowledge-base/domain/access-matrix.md",
         "docs/knowledge-base/domain/glossary.md"
       ],
-      "task_ids": ["1.14"],
-      "rule_refs": ["§11", "§6", "§3", "§5.7"],
+      "task_ids": [
+        "1.14"
+      ],
+      "rule_refs": [
+        "§11",
+        "§6",
+        "§3",
+        "§5.7"
+      ],
       "phase": 1,
       "rationale": "Curated Phase 1 KB (auth ADR + access matrix + glossary) — the knowledge-base thesis in practice.",
-      "depends_on": [19]
+      "depends_on": [
+        19
+      ]
     },
     {
       "seq": 22,
@@ -444,11 +631,21 @@
         "backend/tests/services/test_audit_service.py",
         "backend/tests/api/test_rbac_integration.py"
       ],
-      "task_ids": ["1.13"],
-      "rule_refs": ["§9", "§5.7", "§6", "§3"],
+      "task_ids": [
+        "1.13"
+      ],
+      "rule_refs": [
+        "§9",
+        "§5.7",
+        "§6",
+        "§3"
+      ],
       "phase": 1,
       "rationale": "Exit-gate integration test; fixes failure-audit loss on request rollback (found by the test).",
-      "depends_on": [20, 21]
+      "depends_on": [
+        20,
+        21
+      ]
     },
     {
       "seq": 23,
@@ -463,11 +660,20 @@
         "backend/alembic/versions/20260808_2312_ed6325972492_create_availability_slots_table.py",
         "backend/tests/models/test_scheduling.py"
       ],
-      "task_ids": ["2.1"],
-      "rule_refs": ["§4.1", "§3", "§5.2", "§8"],
+      "task_ids": [
+        "2.1"
+      ],
+      "rule_refs": [
+        "§4.1",
+        "§3",
+        "§5.2",
+        "§8"
+      ],
       "phase": 2,
       "rationale": "AvailabilitySlot persistence model (half-open intervals, is_booked flag) + reviewed migration.",
-      "depends_on": [12]
+      "depends_on": [
+        12
+      ]
     },
     {
       "seq": 24,
@@ -485,11 +691,19 @@
         "backend/tests/domain/test_appointment_state.py",
         "backend/tests/domain/test_domain_purity.py"
       ],
-      "task_ids": ["2.4"],
-      "rule_refs": ["§5.1", "§6", "§7.6"],
+      "task_ids": [
+        "2.4"
+      ],
+      "rule_refs": [
+        "§5.1",
+        "§6",
+        "§7.6"
+      ],
       "phase": 2,
       "rationale": "Pure appointment state machine (legal transitions + role gating) with framework-free typed errors.",
-      "depends_on": [7]
+      "depends_on": [
+        7
+      ]
     },
     {
       "seq": 25,
@@ -502,11 +716,18 @@
         "backend/app/domain/scheduling_rules.py",
         "backend/tests/domain/test_scheduling_rules.py"
       ],
-      "task_ids": ["2.6"],
-      "rule_refs": ["§5.2", "§7.6"],
+      "task_ids": [
+        "2.6"
+      ],
+      "rule_refs": [
+        "§5.2",
+        "§7.6"
+      ],
       "phase": 2,
       "rationale": "Pure conflict/buffer + late-cancellation rules over datetimes; thresholds injected from config.",
-      "depends_on": [24]
+      "depends_on": [
+        24
+      ]
     },
     {
       "seq": 26,
@@ -520,11 +741,21 @@
         "backend/alembic/versions/20260808_2319_7c55e96cd3c2_create_appointments_table.py",
         "backend/tests/models/test_scheduling.py"
       ],
-      "task_ids": ["2.3"],
-      "rule_refs": ["§4.1", "§5.1", "§5.2", "§8"],
+      "task_ids": [
+        "2.3"
+      ],
+      "rule_refs": [
+        "§4.1",
+        "§5.1",
+        "§5.2",
+        "§8"
+      ],
       "phase": 2,
       "rationale": "Appointment model with domain-enum status + unique slot_id (DB double-book guard) + migration.",
-      "depends_on": [23, 24]
+      "depends_on": [
+        23,
+        24
+      ]
     },
     {
       "seq": 27,
@@ -543,11 +774,21 @@
         "backend/tests/services/test_appointment_service.py",
         "backend/tests/api/test_appointments.py"
       ],
-      "task_ids": ["2.2"],
-      "rule_refs": ["§3", "§5.2", "§7.6"],
+      "task_ids": [
+        "2.2"
+      ],
+      "rule_refs": [
+        "§3",
+        "§5.2",
+        "§7.6"
+      ],
       "phase": 2,
       "rationale": "Doctor slot publishing/listing with buffer-aware conflict check; fixes validation-encoder + naive-datetime bugs.",
-      "depends_on": [25, 26, 18]
+      "depends_on": [
+        25,
+        26,
+        18
+      ]
     },
     {
       "seq": 28,
@@ -562,11 +803,19 @@
         "backend/tests/services/test_appointment_service.py",
         "backend/tests/api/test_appointments.py"
       ],
-      "task_ids": ["2.5"],
-      "rule_refs": ["§3", "§5.2", "§7.6"],
+      "task_ids": [
+        "2.5"
+      ],
+      "rule_refs": [
+        "§3",
+        "§5.2",
+        "§7.6"
+      ],
       "phase": 2,
       "rationale": "Atomic patient booking (slot load/guard, buffer re-check, mark booked, create appointment, audit).",
-      "depends_on": [27]
+      "depends_on": [
+        27
+      ]
     },
     {
       "seq": 29,
@@ -581,11 +830,22 @@
         "backend/tests/services/test_appointment_service.py",
         "backend/tests/api/test_appointments.py"
       ],
-      "task_ids": ["2.7", "2.8"],
-      "rule_refs": ["§5.1", "§5.2", "§3", "§6", "§7.6"],
+      "task_ids": [
+        "2.7",
+        "2.8"
+      ],
+      "rule_refs": [
+        "§5.1",
+        "§5.2",
+        "§3",
+        "§6",
+        "§7.6"
+      ],
       "phase": 2,
       "rationale": "State-machine-driven transitions with cancel slot-freeing + late flag and staff lifecycle advance.",
-      "depends_on": [28]
+      "depends_on": [
+        28
+      ]
     },
     {
       "seq": 30,
@@ -600,11 +860,21 @@
         "backend/tests/services/test_booking_concurrency.py",
         "backend/tests/api/test_appointments.py"
       ],
-      "task_ids": ["2.9", "2.10"],
-      "rule_refs": ["§3", "§5.2", "§6", "§7.6"],
+      "task_ids": [
+        "2.9",
+        "2.10"
+      ],
+      "rule_refs": [
+        "§3",
+        "§5.2",
+        "§6",
+        "§7.6"
+      ],
       "phase": 2,
       "rationale": "Doctor calendar + nurse ward views and a race test proving unique(slot_id) blocks double-booking.",
-      "depends_on": [29]
+      "depends_on": [
+        29
+      ]
     },
     {
       "seq": 31,
@@ -629,11 +899,20 @@
         "backend/app/web/static/app.css",
         "backend/tests/web/test_auth_web.py"
       ],
-      "task_ids": ["2.11"],
-      "rule_refs": ["§7.3", "§3", "§7.6"],
+      "task_ids": [
+        "2.11"
+      ],
+      "rule_refs": [
+        "§7.3",
+        "§3",
+        "§7.6"
+      ],
       "phase": 2,
       "rationale": "Server-rendered cookie login/register/logout + per-role dashboards; the web auth foundation.",
-      "depends_on": [18, 9]
+      "depends_on": [
+        18,
+        9
+      ]
     },
     {
       "seq": 32,
@@ -653,11 +932,20 @@
         "backend/app/web/static/app.css",
         "backend/tests/web/test_appointments_web.py"
       ],
-      "task_ids": ["2.11"],
-      "rule_refs": ["§7.3", "§3", "§7.6"],
+      "task_ids": [
+        "2.11"
+      ],
+      "rule_refs": [
+        "§7.3",
+        "§3",
+        "§7.6"
+      ],
       "phase": 2,
       "rationale": "Patient HTMX booking page + confirmation partial + appointment list; completes the Phase 2 web UI.",
-      "depends_on": [31, 28]
+      "depends_on": [
+        31,
+        28
+      ]
     },
     {
       "seq": 33,
@@ -669,11 +957,20 @@
       "files": [
         "backend/tests/api/test_scheduling_integration.py"
       ],
-      "task_ids": ["2.12"],
-      "rule_refs": ["§9", "§5.1", "§5.2", "§3"],
+      "task_ids": [
+        "2.12"
+      ],
+      "rule_refs": [
+        "§9",
+        "§5.1",
+        "§5.2",
+        "§3"
+      ],
       "phase": 2,
       "rationale": "End-to-end exit-gate test: book, double-book block, staff lifecycle, late-cancel flag + slot re-open.",
-      "depends_on": [32]
+      "depends_on": [
+        32
+      ]
     },
     {
       "seq": 34,
@@ -687,11 +984,20 @@
         "docs/knowledge-base/workflows/appointment-booking.md",
         "docs/knowledge-base/workflows/appointment-lifecycle.md"
       ],
-      "task_ids": ["2.13"],
-      "rule_refs": ["§11", "§5.1", "§5.2", "§3"],
+      "task_ids": [
+        "2.13"
+      ],
+      "rule_refs": [
+        "§11",
+        "§5.1",
+        "§5.2",
+        "§3"
+      ],
       "phase": 2,
       "rationale": "Curated Phase 2 KB: business rules #1/#2 with why/edge-cases/tests + booking & lifecycle workflow diagrams.",
-      "depends_on": [33]
+      "depends_on": [
+        33
+      ]
     },
     {
       "seq": 35,
@@ -706,11 +1012,19 @@
         "backend/alembic/versions/20260809_0051_79326e773cf9_create_encounters_and_addenda_tables.py",
         "backend/tests/models/test_clinical.py"
       ],
-      "task_ids": ["3.1"],
-      "rule_refs": ["§4.1", "§5.6", "§8"],
+      "task_ids": [
+        "3.1"
+      ],
+      "rule_refs": [
+        "§4.1",
+        "§5.6",
+        "§8"
+      ],
       "phase": 3,
       "rationale": "Append-only Encounter + polymorphic Addendum models + migration (persistence for §5.6).",
-      "depends_on": [26]
+      "depends_on": [
+        26
+      ]
     },
     {
       "seq": 36,
@@ -723,11 +1037,18 @@
         "backend/app/domain/vitals_ranges.py",
         "backend/tests/domain/test_vitals_ranges.py"
       ],
-      "task_ids": ["3.3"],
-      "rule_refs": ["§5.5", "§7.6"],
+      "task_ids": [
+        "3.3"
+      ],
+      "rule_refs": [
+        "§5.5",
+        "§7.6"
+      ],
       "phase": 3,
       "rationale": "Pure age-banded vitals range check returning out-of-range flags.",
-      "depends_on": [24]
+      "depends_on": [
+        24
+      ]
     },
     {
       "seq": 37,
@@ -740,11 +1061,19 @@
         "backend/app/domain/access_scope.py",
         "backend/tests/domain/test_access_scope.py"
       ],
-      "task_ids": ["3.7"],
-      "rule_refs": ["§5.3", "§6", "§7.6"],
+      "task_ids": [
+        "3.7"
+      ],
+      "rule_refs": [
+        "§5.3",
+        "§6",
+        "§7.6"
+      ],
       "phase": 3,
       "rationale": "Pure treating-relationship predicate — the fine authorization check role guards can't express.",
-      "depends_on": [24]
+      "depends_on": [
+        24
+      ]
     },
     {
       "seq": 38,
@@ -758,11 +1087,22 @@
         "backend/alembic/versions/20260809_0058_373f7898b52e_create_vitals_and_diagnoses_tables.py",
         "backend/tests/models/test_clinical.py"
       ],
-      "task_ids": ["3.2", "3.4"],
-      "rule_refs": ["§4.1", "§3", "§5.5", "§5.6", "§8"],
+      "task_ids": [
+        "3.2",
+        "3.4"
+      ],
+      "rule_refs": [
+        "§4.1",
+        "§3",
+        "§5.5",
+        "§5.6",
+        "§8"
+      ],
       "phase": 3,
       "rationale": "Vitals (with flags snapshot) + Diagnosis append-only models + migration.",
-      "depends_on": [35]
+      "depends_on": [
+        35
+      ]
     },
     {
       "seq": 39,
@@ -781,11 +1121,28 @@
         "backend/tests/services/test_clinical_service.py",
         "backend/tests/api/test_encounters.py"
       ],
-      "task_ids": ["3.5", "3.6", "3.8", "3.9", "3.11"],
-      "rule_refs": ["§3", "§5.3", "§5.5", "§5.6", "§5.7", "§7.6"],
+      "task_ids": [
+        "3.5",
+        "3.6",
+        "3.8",
+        "3.9",
+        "3.11"
+      ],
+      "rule_refs": [
+        "§3",
+        "§5.3",
+        "§5.5",
+        "§5.6",
+        "§5.7",
+        "§7.6"
+      ],
       "phase": 3,
       "rationale": "Clinical service+API: encounters, age-flagged vitals, diagnoses, addenda, treating-scoped history, all audited.",
-      "depends_on": [36, 37, 38]
+      "depends_on": [
+        36,
+        37,
+        38
+      ]
     },
     {
       "seq": 40,
@@ -803,11 +1160,19 @@
         "backend/tests/domain/test_access_scope.py",
         "backend/tests/services/test_clinical_service.py"
       ],
-      "task_ids": ["3.10"],
-      "rule_refs": ["§5.8", "§5.3", "§8"],
+      "task_ids": [
+        "3.10"
+      ],
+      "rule_refs": [
+        "§5.8",
+        "§5.3",
+        "§8"
+      ],
       "phase": 3,
       "rationale": "Consent gate: sensitive encounters hidden from staff without shared consent; patient always sees own.",
-      "depends_on": [39]
+      "depends_on": [
+        39
+      ]
     },
     {
       "seq": 41,
@@ -826,11 +1191,20 @@
         "backend/app/web/static/app.css",
         "backend/tests/web/test_clinical_web.py"
       ],
-      "task_ids": ["3.12"],
-      "rule_refs": ["§7.3", "§3", "§7.6"],
+      "task_ids": [
+        "3.12"
+      ],
+      "rule_refs": [
+        "§7.3",
+        "§3",
+        "§7.6"
+      ],
       "phase": 3,
       "rationale": "Web clinical screens: patient history view + doctor encounter page with HTMX diagnosis add.",
-      "depends_on": [39, 31]
+      "depends_on": [
+        39,
+        31
+      ]
     },
     {
       "seq": 42,
@@ -842,11 +1216,22 @@
       "files": [
         "backend/tests/api/test_clinical_integration.py"
       ],
-      "task_ids": ["3.13"],
-      "rule_refs": ["§9", "§5.3", "§5.5", "§5.6", "§5.7"],
+      "task_ids": [
+        "3.13"
+      ],
+      "rule_refs": [
+        "§9",
+        "§5.3",
+        "§5.5",
+        "§5.6",
+        "§5.7"
+      ],
       "phase": 3,
       "rationale": "Exit-gate: nurse->doctor flow + age-flagged vitals + scoping (allow/deny+audit) + append-only surface.",
-      "depends_on": [40, 41]
+      "depends_on": [
+        40,
+        41
+      ]
     },
     {
       "seq": 43,
@@ -859,11 +1244,21 @@
         "docs/knowledge-base/domain/business-rules.md",
         "docs/knowledge-base/workflows/triage-to-consult.md"
       ],
-      "task_ids": ["3.14"],
-      "rule_refs": ["§11", "§5.3", "§5.5", "§5.6", "§5.8"],
+      "task_ids": [
+        "3.14"
+      ],
+      "rule_refs": [
+        "§11",
+        "§5.3",
+        "§5.5",
+        "§5.6",
+        "§5.8"
+      ],
       "phase": 3,
       "rationale": "Curated Phase 3 KB: rules #3/#5/#6/#8 with why/edge-cases/tests + triage->consult workflow.",
-      "depends_on": [42]
+      "depends_on": [
+        42
+      ]
     },
     {
       "seq": 44,
@@ -879,11 +1274,22 @@
         "backend/alembic/versions/20260809_1619_f8d94a046c95_create_prescription_domain_tables.py",
         "backend/tests/models/test_prescription.py"
       ],
-      "task_ids": ["4.1", "4.2", "4.3", "4.4"],
-      "rule_refs": ["§4.1", "§5.4", "§8"],
+      "task_ids": [
+        "4.1",
+        "4.2",
+        "4.3",
+        "4.4"
+      ],
+      "rule_refs": [
+        "§4.1",
+        "§5.4",
+        "§8"
+      ],
       "phase": 4,
       "rationale": "Medication/Allergy/DrugInteraction/Prescription models + migration; roots out the vitals.flags false-diff.",
-      "depends_on": [38]
+      "depends_on": [
+        38
+      ]
     },
     {
       "seq": 45,
@@ -896,11 +1302,20 @@
         "backend/app/domain/prescription_safety.py",
         "backend/tests/domain/test_prescription_safety.py"
       ],
-      "task_ids": ["4.5", "4.6", "4.7"],
-      "rule_refs": ["§5.4", "§7.6"],
+      "task_ids": [
+        "4.5",
+        "4.6",
+        "4.7"
+      ],
+      "rule_refs": [
+        "§5.4",
+        "§7.6"
+      ],
       "phase": 4,
       "rationale": "Pure prescription-safety evaluator: allergy hard-block, refill cap, overridable interaction warn.",
-      "depends_on": [24]
+      "depends_on": [
+        24
+      ]
     },
     {
       "seq": 46,
@@ -918,11 +1333,23 @@
         "backend/tests/services/test_prescription_service.py",
         "backend/tests/api/test_prescriptions.py"
       ],
-      "task_ids": ["4.8", "4.9"],
-      "rule_refs": ["§3", "§5.4", "§5.7", "§7.6"],
+      "task_ids": [
+        "4.8",
+        "4.9"
+      ],
+      "rule_refs": [
+        "§3",
+        "§5.4",
+        "§5.7",
+        "§7.6"
+      ],
       "phase": 4,
       "rationale": "Prescribe service+API enforcing §5.4 (allergy/interaction/refill) with audit; patient/staff reads.",
-      "depends_on": [44, 45, 39]
+      "depends_on": [
+        44,
+        45,
+        39
+      ]
     },
     {
       "seq": 47,
@@ -935,11 +1362,19 @@
         "backend/app/db/seed.py",
         "backend/tests/db/test_seed.py"
       ],
-      "task_ids": ["4.10"],
-      "rule_refs": ["§5.4", "§8"],
+      "task_ids": [
+        "4.10"
+      ],
+      "rule_refs": [
+        "§5.4",
+        "§8"
+      ],
       "phase": 4,
       "rationale": "Idempotent medication + interaction seed so the safety-checked prescribe flow is demoable.",
-      "depends_on": [44, 46]
+      "depends_on": [
+        44,
+        46
+      ]
     },
     {
       "seq": 48,
@@ -957,11 +1392,21 @@
         "backend/app/web/static/app.css",
         "backend/tests/web/test_prescriptions_web.py"
       ],
-      "task_ids": ["4.11"],
-      "rule_refs": ["§7.3", "§3", "§5.4", "§7.6"],
+      "task_ids": [
+        "4.11"
+      ],
+      "rule_refs": [
+        "§7.3",
+        "§3",
+        "§5.4",
+        "§7.6"
+      ],
       "phase": 4,
       "rationale": "Web prescribe form (with safety-warning display + override) + patient prescriptions list.",
-      "depends_on": [46, 41]
+      "depends_on": [
+        46,
+        41
+      ]
     },
     {
       "seq": 49,
@@ -973,11 +1418,18 @@
       "files": [
         "backend/tests/api/test_prescription_integration.py"
       ],
-      "task_ids": ["4.12"],
-      "rule_refs": ["§9", "§5.4"],
+      "task_ids": [
+        "4.12"
+      ],
+      "rule_refs": [
+        "§9",
+        "§5.4"
+      ],
       "phase": 4,
       "rationale": "Exit-gate: safe rx succeeds; allergy/interaction/refill blocks with clear reasons; override for interactions only.",
-      "depends_on": [48]
+      "depends_on": [
+        48
+      ]
     },
     {
       "seq": 50,
@@ -990,11 +1442,18 @@
         "docs/knowledge-base/domain/business-rules.md",
         "docs/knowledge-base/workflows/prescribe.md"
       ],
-      "task_ids": ["4.13"],
-      "rule_refs": ["§11", "§5.4"],
+      "task_ids": [
+        "4.13"
+      ],
+      "rule_refs": [
+        "§11",
+        "§5.4"
+      ],
       "phase": 4,
       "rationale": "Curated Phase 4 KB: rule #4 with severity rationale + prescribe workflow diagram.",
-      "depends_on": [49]
+      "depends_on": [
+        49
+      ]
     },
     {
       "seq": 51,
@@ -1009,11 +1468,26 @@
         "docs/knowledge-base/adr/ADR-0004-layered-architecture.md",
         "docs/knowledge-base/adr/ADR-0005-audit-strategy.md"
       ],
-      "task_ids": ["5.3", "5.4", "5.6", "5.7"],
-      "rule_refs": ["§11", "§1", "§5.6", "§5.7", "§7.2", "§7.6", "§8"],
+      "task_ids": [
+        "5.3",
+        "5.4",
+        "5.6",
+        "5.7"
+      ],
+      "rule_refs": [
+        "§11",
+        "§1",
+        "§5.6",
+        "§5.7",
+        "§7.2",
+        "§7.6",
+        "§8"
+      ],
       "phase": 5,
       "rationale": "The four remaining ADRs (no-Docker/SQLite, append-only, layering, audit).",
-      "depends_on": [50]
+      "depends_on": [
+        50
+      ]
     },
     {
       "seq": 52,
@@ -1029,11 +1503,22 @@
         "docs/knowledge-base/workflows/register-and-login.md",
         "docs/knowledge-base/runbooks/setup-and-operations.md"
       ],
-      "task_ids": ["5.11", "5.12", "5.13", "5.14"],
-      "rule_refs": ["§11", "§8", "§7.6"],
+      "task_ids": [
+        "5.11",
+        "5.12",
+        "5.13",
+        "5.14"
+      ],
+      "rule_refs": [
+        "§11",
+        "§8",
+        "§7.6"
+      ],
       "phase": 5,
       "rationale": "ERD + OpenAPI export/notes + register workflow + operations runbook.",
-      "depends_on": [51]
+      "depends_on": [
+        51
+      ]
     },
     {
       "seq": 53,
@@ -1046,11 +1531,18 @@
         "docs/knowledge-base/KNOWLEDGE-INDEX.md",
         "AGENTS.md"
       ],
-      "task_ids": ["5.1", "5.2"],
-      "rule_refs": ["§11"],
+      "task_ids": [
+        "5.1",
+        "5.2"
+      ],
+      "rule_refs": [
+        "§11"
+      ],
       "phase": 5,
       "rationale": "KNOWLEDGE-INDEX (the map an AI reads first) + AGENTS.md working guide; closes the Phase 5 exit gate.",
-      "depends_on": [52]
+      "depends_on": [
+        52
+      ]
     },
     {
       "seq": 54,
@@ -1063,11 +1555,18 @@
         "backend/app/db/seed.py",
         "backend/tests/db/test_seed.py"
       ],
-      "task_ids": ["6.2"],
-      "rule_refs": ["§9", "§3"],
+      "task_ids": [
+        "6.2"
+      ],
+      "rule_refs": [
+        "§9",
+        "§3"
+      ],
       "phase": 6,
       "rationale": "Idempotent full clinical-journey seed so the app is demoable on first run.",
-      "depends_on": [47]
+      "depends_on": [
+        47
+      ]
     },
     {
       "seq": 55,
@@ -1079,11 +1578,19 @@
       "files": [
         "docs/knowledge-base/domain/traceability.md"
       ],
-      "task_ids": ["6.1"],
-      "rule_refs": ["§10", "§11", "§5"],
+      "task_ids": [
+        "6.1"
+      ],
+      "rule_refs": [
+        "§10",
+        "§11",
+        "§5"
+      ],
       "phase": 6,
       "rationale": "Explicit §5-rule → test traceability matrix across all layers.",
-      "depends_on": [53]
+      "depends_on": [
+        53
+      ]
     },
     {
       "seq": 56,
@@ -1095,11 +1602,18 @@
       "files": [
         "backend/tests/web/test_web_routes_sweep.py"
       ],
-      "task_ids": ["6.3"],
-      "rule_refs": ["§10", "§7.3"],
+      "task_ids": [
+        "6.3"
+      ],
+      "rule_refs": [
+        "§10",
+        "§7.3"
+      ],
       "phase": 6,
       "rationale": "Whole-surface web route sweep: public render, protected redirects, nav state, 404, static.",
-      "depends_on": [48]
+      "depends_on": [
+        48
+      ]
     },
     {
       "seq": 57,
@@ -1112,11 +1626,19 @@
         "README.md",
         "../PROJECT-BRIEF.md"
       ],
-      "task_ids": ["6.4", "6.5"],
-      "rule_refs": ["§9", "§11"],
+      "task_ids": [
+        "6.4",
+        "6.5"
+      ],
+      "rule_refs": [
+        "§9",
+        "§11"
+      ],
       "phase": 6,
       "rationale": "Finalized README (demo accounts + feature summary) and rewrote the stale PROJECT-BRIEF (note: ../PROJECT-BRIEF.md is outside repo_root — replay should skip it if not under version control, committing only README.md).",
-      "depends_on": [54]
+      "depends_on": [
+        54
+      ]
     },
     {
       "seq": 58,
@@ -1132,11 +1654,641 @@
         "docs/knowledge-base/runbooks/setup-and-operations.md",
         "../PROJECT-BRIEF.md"
       ],
-      "task_ids": ["6.6"],
-      "rule_refs": ["§9", "§3"],
+      "task_ids": [
+        "6.6"
+      ],
+      "rule_refs": [
+        "§9",
+        "§3"
+      ],
       "phase": 6,
       "rationale": "Final e2e verification; fixes demo emails that EmailStr rejected (.local) so seeded accounts actually log in.",
-      "depends_on": [57]
+      "depends_on": [
+        57
+      ]
+    },
+    {
+      "seq": 59,
+      "id": "c059",
+      "message": {
+        "subject": "docs: plan v2 scope addendum (feature depth + rich UI, M7-M11)",
+        "body": "Adds the v2 scope plan after review found the web UI too thin: the domain +\nJSON API are complete/tested for all roles, but staff dashboards were\nplaceholders and lab/messaging/documents were never in v1.\n\n- DESIGN.md §13: v2 addendum — confirmed decisions (phased launch, stay local-\n  first; vendored Pico.css + role app shell, no build step; multi-milestone),\n  milestones M7-M11, the end-to-end cross-role acceptance narrative, and v2\n  non-goals.\n- TASKS.md: new phases 7-11 task tables + status-summary rows.\n\nMethodology unchanged (§9A): one functionality = one ledger slice, tests + KB in\nlockstep. Docs-only; suite unchanged at 262 passed.\n\nRefs: DESIGN 13, 9A."
+      },
+      "files": [
+        "docs/DESIGN.md",
+        "docs/TASKS.md"
+      ],
+      "task_ids": [],
+      "rule_refs": [
+        "§13",
+        "§9A"
+      ],
+      "phase": 7,
+      "rationale": "v2 plan: DESIGN §13 addendum + TASKS phases 7-11 for feature depth and rich UI.",
+      "depends_on": [
+        58
+      ]
+    },
+    {
+      "seq": 60,
+      "id": "c060",
+      "message": {
+        "subject": "feat(web): app shell with Pico.css + role-aware sidebar (M7.1)",
+        "body": "Replaces the minimal hand-rolled styling with a proper app shell (DESIGN §13.1).\n\n- static/pico.min.css: vendored Pico CSS v2.1.1 (classless framework, one file,\n  NO build step — honors §7.3/ADR-0001).\n- base.html: loads Pico + app.css; Pico container header/footer; nav as <ul>.\n- dashboard/_base.html: authenticated app shell — a role-aware sidebar (links\n  chosen from a per-role map; every link points at an existing route) + a\n  content area with an hgroup header; logout + role badge in the sidebar foot.\n- app.css: rewritten as overrides on Pico — brand teal retint, the .app-shell/\n  .app-sidebar layout (responsive: stacks under 768px), role badge, metric-grid\n  for dashboard stat tiles, and the small utilities templates still use\n  (form-error, status-ok, flag, dash-note, slot-list, inline-check).\n- landing.html: polished hero with Get-started/Log-in buttons; nav as <ul>.\n\nExisting dashboards/pages render unchanged through the new shell (they only\noverride dash_title/dash_content). Verified: Pico linked, shell + sidebar render\nfor the doctor role, landing renders. Full suite: 262 passed (38 web).\n\nImplements TASKS 7.1.\nRefs: DESIGN 13.1, 7.3."
+      },
+      "files": [
+        "backend/app/web/static/pico.min.css",
+        "backend/app/web/templates/base.html",
+        "backend/app/web/templates/dashboard/_base.html",
+        "backend/app/web/static/app.css",
+        "backend/app/web/templates/landing.html"
+      ],
+      "task_ids": [
+        "7.1"
+      ],
+      "rule_refs": [
+        "§13",
+        "§7.3"
+      ],
+      "phase": 7,
+      "rationale": "Vendored Pico.css + role-aware sidebar app shell; the visual foundation for the M7 dashboards.",
+      "depends_on": [
+        59
+      ]
+    },
+    {
+      "seq": 61,
+      "id": "c061",
+      "message": {
+        "subject": "feat(web): real doctor worklist dashboard + open-encounter flow (M7.2, M7.3)",
+        "body": "Turns the doctor placeholder into a working control center.\n\n- appointment_repository: scheduled_for_doctor()/scheduled_all() — display joins\n  returning view-row dicts (appointment + slot time + patient email, UTC-coerced,\n  ordered by start) so the web layer renders without lazy loads.\n- web/router: dashboard route now builds a per-role read-only view model\n  (_dashboard_context) — doctor gets appointments/open-count/patient list;\n  scaffolding for nurse/admin/patient summaries too.\n- web/clinical: POST /clinical/appointments/{id}/open — doctor action that opens\n  (idempotently) the encounter via clinical_service and 303-redirects to it;\n  non-doctors 403.\n- dashboard/doctor.html: metric tiles + today's worklist table with an 'Open\n  encounter' action per actionable appointment.\n- Aligned all dashboard <title>s to '<Role> — HealthyVytals'; updated the\n  role-landing test marker accordingly (title/badge are stable across rebuilds).\n\nTests (web, 3): worklist shows the booked patient+reason+action; open-encounter\nredirects to the encounter page (diagnose/prescribe forms present); patient can't\nopen. Full suite: 265 passed.\n\nImplements TASKS 7.2, 7.3.\nRefs: DESIGN 13.2 (M7), 3 (B5, C2, D1), 7.6."
+      },
+      "files": [
+        "backend/app/repositories/appointment_repository.py",
+        "backend/app/web/router.py",
+        "backend/app/web/clinical.py",
+        "backend/app/web/templates/dashboard/doctor.html",
+        "backend/app/web/templates/dashboard/nurse.html",
+        "backend/app/web/templates/dashboard/admin.html",
+        "backend/app/web/templates/dashboard/patient.html",
+        "backend/tests/web/test_auth_web.py",
+        "backend/tests/web/test_doctor_dashboard_web.py"
+      ],
+      "task_ids": [
+        "7.2",
+        "7.3"
+      ],
+      "rule_refs": [
+        "§13",
+        "§3",
+        "§7.6"
+      ],
+      "phase": 7,
+      "rationale": "Working doctor worklist wired to existing services + open-encounter action into the consult flow.",
+      "depends_on": [
+        60,
+        39
+      ]
+    },
+    {
+      "seq": 62,
+      "id": "c062",
+      "message": {
+        "subject": "fix(scripts): guard Python version range and rebuild stale venv",
+        "body": "Hardens setup against the two real setup failures reported from other machines.\n\n1) Python 3.14 has no prebuilt wheels for pinned deps (pydantic-core), so pip\n   fell back to a Rust build that crashes. setup.sh/.ps1 now check BOTH bounds\n   (3.11 <= X < 3.14); if $PYTHON is unset, setup.sh auto-tries python3.13/3.12/\n   3.11/python3/python and picks the first supported one, else prints a clear\n   'install 3.11-3.13' message instead of a cryptic maturin error.\n2) A .venv copied from another machine/OS can't execute ('cannot execute binary\n   file'). Both scripts now detect an unusable .venv and recreate it.\n\nAlso echoes the chosen interpreter/version. Verified: 3.13 accepted, 3.14\nrejected, and a fresh setup.sh run rebuilds+migrates+seeds cleanly. Docs/tests\nunaffected; full suite: 265 passed.\n\nRefs: DESIGN 8, ADR-0001."
+      },
+      "files": [
+        "scripts/setup.sh",
+        "scripts/setup.ps1",
+        "README.md",
+        "docs/knowledge-base/runbooks/setup-and-operations.md"
+      ],
+      "task_ids": [],
+      "rule_refs": [
+        "§8"
+      ],
+      "phase": 7,
+      "rationale": "Setup version guard (3.11-3.13) + stale-venv rebuild; turns two cryptic cross-machine failures into clear guidance.",
+      "depends_on": [
+        11
+      ]
+    },
+    {
+      "seq": 63,
+      "id": "c063",
+      "message": {
+        "subject": "feat(web): nurse ward board + triage vitals-entry UI (M7.4, M7.5)",
+        "body": "Turns the nurse placeholder into a working ward board and brings the vitals\nflow (previously API-only) to the browser.\n\n- clinical_service: extracted _ensure_encounter(appointment, actor) — creates the\n  encounter attributed to the appointment's assigned doctor regardless of who\n  triggers it, so a nurse can bring it into being during triage. open_encounter\n  keeps its doctor-ownership check and delegates to it. New\n  record_vitals_for_appointment(nurse, appointment, reading) ensures the encounter\n  then records vitals (reusing the age-flagging + audit path).\n- web/clinical: nurse routes — POST /appointments/{id}/check-in (state machine),\n  GET/POST /appointments/{id}/vitals (form + HTMX submit → flagged result\n  partial). All nurse-gated.\n- dashboard/nurse.html: ward board with metrics, check-in + record-vitals actions;\n  encounters/vitals_form.html + partials/vitals_result.html.\n\nTests: web (4) board lists appt+actions, check-in 303, nurse records vitals\n(HTMX, flagged, persisted), patient 403; service (1) triage creates the encounter\n(attributed to the doctor) + flags. Full suite: 270 passed.\n\nImplements TASKS 7.4, 7.5.\nRefs: DESIGN 13.2 (M7), 3 (B5, B6, C1), 5.5, 7.6."
+      },
+      "files": [
+        "backend/app/services/clinical_service.py",
+        "backend/app/web/clinical.py",
+        "backend/app/web/templates/dashboard/nurse.html",
+        "backend/app/web/templates/encounters/vitals_form.html",
+        "backend/app/web/templates/encounters/partials/vitals_result.html",
+        "backend/tests/web/test_nurse_dashboard_web.py",
+        "backend/tests/services/test_clinical_service.py"
+      ],
+      "task_ids": [
+        "7.4",
+        "7.5"
+      ],
+      "rule_refs": [
+        "§13",
+        "§3",
+        "§5.5",
+        "§7.6"
+      ],
+      "phase": 7,
+      "rationale": "Nurse ward board (check-in) + browser vitals-entry with age-flagging; encounter auto-created at triage.",
+      "depends_on": [
+        61,
+        39
+      ]
+    },
+    {
+      "seq": 64,
+      "id": "c064",
+      "message": {
+        "subject": "feat(web): admin console — user management + audit-log viewer (M7.6, M7.7)",
+        "body": "Turns the admin placeholder into a real operations console (stories E1-E3).\n\n- auth_service: list_all_users() and set_user_active(admin, user, is_active) —\n  soft activate/deactivate (never delete) with audit (user.activate/deactivate);\n  refuses self-deactivation (no lock-out); NotFound on unknown user.\n- audit_service.list_audit(actor/patient/action filters, newest first) — the\n  read side of the append-only trail (admin-only via the route).\n- web/admin.py: /admin/users (list + provision form + activate/deactivate) and\n  /admin/audit (filterable viewer), all _require_admin (403 otherwise). main.py\n  mounts it; admin sidebar gains Users + Audit log links.\n- templates: dashboard/admin.html (role-count metrics + quick links),\n  admin/users.html, admin/audit.html.\n\nTests: web (5) dashboard counts+links, provision via console, deactivate→login\n401 + reactivate, non-admin 403 on both pages, audit lists+filters; service (2)\nset_user_active toggles+audits, admin-cannot-deactivate-self. Full suite: 277\npassed.\n\nImplements TASKS 7.6, 7.7.\nRefs: DESIGN 13.2 (M7), 3 (E1-E3), 5.7, 6, 7.6."
+      },
+      "files": [
+        "backend/app/services/auth_service.py",
+        "backend/app/services/audit_service.py",
+        "backend/app/web/admin.py",
+        "backend/app/main.py",
+        "backend/app/web/templates/dashboard/_base.html",
+        "backend/app/web/templates/dashboard/admin.html",
+        "backend/app/web/templates/admin/users.html",
+        "backend/app/web/templates/admin/audit.html",
+        "backend/tests/web/test_admin_web.py",
+        "backend/tests/services/test_auth_service.py"
+      ],
+      "task_ids": [
+        "7.6",
+        "7.7"
+      ],
+      "rule_refs": [
+        "§13",
+        "§3",
+        "§5.7",
+        "§6",
+        "§7.6"
+      ],
+      "phase": 7,
+      "rationale": "Admin user console (provision + activate/deactivate) and filterable audit-log viewer, admin-gated + audited.",
+      "depends_on": [
+        63,
+        19,
+        16
+      ]
+    },
+    {
+      "seq": 65,
+      "id": "c065",
+      "message": {
+        "subject": "feat(web): patient overview home + route sweep + web-UI KB (M7 complete)",
+        "body": "Finishes M7 (real role dashboards).\n\n- dashboard/patient.html: overview home — upcoming-appt / active-rx / total\n  metric tiles + quick-action buttons (book, appointments, history, prescriptions).\n- tests/web/test_web_routes_sweep.py: adds /admin/users + /admin/audit to the\n  protected-redirect sweep; asserts the patient overview content renders.\n- knowledge-base/web-ui-map.md (+ KNOWLEDGE-INDEX link): documents every role's\n  screens, the app shell, HTMX conventions, and where each route lives.\n\nMilestone check (live, seeded): all four roles log in to a real dashboard\n(app-shell + metric tiles), no placeholders. Full suite: 279 passed.\n\nImplements TASKS 7.8, 7.9, 7.10 and the M7 exit gate.\nRefs: DESIGN 13.2 (M7), 7.3, 11."
+      },
+      "files": [
+        "backend/app/web/templates/dashboard/patient.html",
+        "backend/tests/web/test_web_routes_sweep.py",
+        "docs/knowledge-base/web-ui-map.md",
+        "docs/knowledge-base/KNOWLEDGE-INDEX.md"
+      ],
+      "task_ids": [
+        "7.8",
+        "7.9",
+        "7.10"
+      ],
+      "rule_refs": [
+        "§13",
+        "§7.3",
+        "§11"
+      ],
+      "phase": 7,
+      "rationale": "Patient overview home + expanded route sweep + web-UI map; closes the M7 exit gate.",
+      "depends_on": [
+        64
+      ]
+    },
+    {
+      "seq": 66,
+      "id": "c066",
+      "message": {
+        "subject": "feat(models): add LabOrder and LabResult models + migration (M8.1)",
+        "body": "Begins M8 (lab results & reports) with the new domain's persistence.\n\n- app/models/lab.py: LabOrder(encounter_id, patient_id, ordered_by, test_code,\n  test_name, notes?, status default 'ordered') and LabResult(lab_order_id,\n  recorded_by, analyte, value, unit?, reference_low/high?, abnormal). Append-only\n  like other clinical records (§5.6): an order has a lifecycle string but is never\n  deleted; results are immutable once recorded. A panel accumulates multiple\n  result rows. abnormal + reference range are stored so the flag is explainable.\n- alembic/env.py: register the lab module.\n- migration 5f45e83bfad3 (down_revision f8d94a046c95): create both tables +\n  indexes. Autogenerated, REVIEWED per DESIGN 8 (removed a redundant duplicate\n  index during review); verified the 10-migration chain upgrades and downgrades\n  cleanly.\n\nTests (2): order defaults to 'ordered'; an order accumulates results with mixed\nabnormal flags. Full suite: 281 passed.\n\nImplements TASKS 8.1.\nRefs: DESIGN 13.2 (M8), 4.1, 5.6, 8."
+      },
+      "files": [
+        "backend/app/models/lab.py",
+        "backend/alembic/env.py",
+        "backend/alembic/versions/20260818_0809_5f45e83bfad3_create_lab_orders_and_lab_results_tables.py",
+        "backend/tests/models/test_lab.py"
+      ],
+      "task_ids": [
+        "8.1"
+      ],
+      "rule_refs": [
+        "§13",
+        "§4.1",
+        "§5.6",
+        "§8"
+      ],
+      "phase": 8,
+      "rationale": "LabOrder + LabResult append-only models + reviewed migration; the M8 persistence foundation.",
+      "depends_on": [
+        35
+      ]
+    },
+    {
+      "seq": 67,
+      "id": "c067",
+      "message": {
+        "subject": "feat(domain): add lab abnormal-flagging rule (M8.2)",
+        "body": "Adds the pure lab-result flagging rule.\n\n- app/domain/lab_rules.py: is_abnormal(value, reference_low, reference_high) —\n  True when the value is outside the inclusive [low, high] range. Either bound may\n  be None (open-ended); both None → always normal. Pure (no framework/DB), so it\n  is unit-testable and the domain-purity guard covers it.\n\nTests (7): within/below/above, inclusive bounds, open-ended low + high, no-range.\nPurity guard still green. Full suite covered in the next slice's run.\n\nImplements TASKS 8.2 (flagging portion).\nRefs: DESIGN 13.2 (M8), 7.6 (rule 3)."
+      },
+      "files": [
+        "backend/app/domain/lab_rules.py",
+        "backend/tests/domain/test_lab_rules.py"
+      ],
+      "task_ids": [
+        "8.2"
+      ],
+      "rule_refs": [
+        "§13",
+        "§7.6"
+      ],
+      "phase": 8,
+      "rationale": "Pure lab abnormal-flagging (value vs reference range); visibility scoping reuses §5.3/§5.8 in the service.",
+      "depends_on": [
+        66
+      ]
+    },
+    {
+      "seq": 68,
+      "id": "c068",
+      "message": {
+        "subject": "feat(labs): order/record/view lab service + API (M8.3, M8.4)",
+        "body": "Wires the lab domain to persistence + audit and exposes it over the API.\n\n- repositories/lab_repository.py: LabOrderRepository (list_for_patient/encounter,\n  pending) + LabResultRepository (list_for_order).\n- services/lab_service.py: order_lab (doctor owns the encounter), record_result\n  (clinical staff only; flags abnormal via domain/lab_rules, appends result, moves\n  order → resulted), get_patient_labs (reuses treating-relationship scoping §5.3;\n  audits lab.read / lab.read_denied). All audited; append-only.\n- schemas/lab.py + api/v1/labs.py: POST /labs/orders (doctor), POST\n  /labs/orders/{id}/results (nurse/doctor), GET /labs/patient/{id} (scoped);\n  mounted on the v1 router.\n\nTests: service (5) owning-doctor order, abnormal-flag + resulted, normal not\nflagged, patient-can't-record, scoping allow/deny+audit; API (3) full flow\n(order→abnormal result→patient views resulted), patient-can't-order 403,\nnon-treating-doctor 403. Full suite: 296 passed.\n\nImplements TASKS 8.3, 8.4.\nRefs: DESIGN 13.2 (M8), 5.3, 5.6, 5.7, 7.6."
+      },
+      "files": [
+        "backend/app/repositories/lab_repository.py",
+        "backend/app/services/lab_service.py",
+        "backend/app/schemas/lab.py",
+        "backend/app/api/v1/labs.py",
+        "backend/app/api/router.py",
+        "backend/tests/services/test_lab_service.py",
+        "backend/tests/api/test_labs.py"
+      ],
+      "task_ids": [
+        "8.3",
+        "8.4"
+      ],
+      "rule_refs": [
+        "§13",
+        "§5.3",
+        "§5.6",
+        "§5.7",
+        "§7.6"
+      ],
+      "phase": 8,
+      "rationale": "Lab service+API: order (doctor)/record (staff, flagged)/view (scoped), all audited & append-only.",
+      "depends_on": [
+        67,
+        39
+      ]
+    },
+    {
+      "seq": 69,
+      "id": "c069",
+      "message": {
+        "subject": "feat(web): lab UI — order/review, nurse queue, patient results (M8.5)",
+        "body": "Brings the lab flow to the browser across all three roles.\n\n- web/clinical.py: doctor POST /encounters/{id}/labs (order → HTMX lab list),\n  patient GET /clinical/labs (own results), nurse GET /clinical/labs/queue\n  (pending orders) + POST /clinical/labs/{id}/results (record → HTMX result list).\n  encounter-detail context gains lab orders (_lab_rows_for_encounter).\n- templates/labs/: mine.html, queue.html, partials/order_list.html +\n  result_list.html (abnormal flagged); encounter/detail.html gains a Labs section\n  (list + order form); sidebar adds patient 'Lab results' + nurse 'Lab queue';\n  patient dashboard gains a Lab results quick action.\n\nTests: web (4) doctor orders via encounter (partial), nurse queue+record abnormal,\npatient views own labs, non-nurse queue 403; route sweep adds /clinical/labs.\nFull suite: 301 passed.\n\nImplements TASKS 8.5.\nRefs: DESIGN 13.2 (M8), 7.3, 7.6 (rule 7)."
+      },
+      "files": [
+        "backend/app/web/clinical.py",
+        "backend/app/web/templates/labs/mine.html",
+        "backend/app/web/templates/labs/queue.html",
+        "backend/app/web/templates/labs/partials/order_list.html",
+        "backend/app/web/templates/labs/partials/result_list.html",
+        "backend/app/web/templates/encounters/detail.html",
+        "backend/app/web/templates/dashboard/_base.html",
+        "backend/app/web/templates/dashboard/patient.html",
+        "backend/tests/web/test_labs_web.py",
+        "backend/tests/web/test_web_routes_sweep.py"
+      ],
+      "task_ids": [
+        "8.5"
+      ],
+      "rule_refs": [
+        "§13",
+        "§7.3",
+        "§7.6"
+      ],
+      "phase": 8,
+      "rationale": "Lab web UI across roles: doctor order/review, nurse queue+record, patient results (HTMX).",
+      "depends_on": [
+        68,
+        65
+      ]
+    },
+    {
+      "seq": 70,
+      "id": "c070",
+      "message": {
+        "subject": "test+docs(labs): M8 exit-gate integration + KB rule #9 & workflow",
+        "body": "Closes M8 (lab results & reports).\n\n- tests/api/test_lab_integration.py: the M8 acceptance narrative end to end —\n  doctor orders → nurse records an abnormal result → patient AND treating doctor\n  both see the resulted order → non-treating doctor 403; asserts the full audit\n  set (lab.order/result/read/read_denied).\n- knowledge-base/domain/business-rules.md: Rule #9 (lab flagging + visibility) —\n  statement, why (separates order/record/view roles), edge cases, enforcement,\n  tests.\n- knowledge-base/workflows/lab-order-to-result.md: Mermaid cross-role sequence;\n  linked from KNOWLEDGE-INDEX.\n\nAll green. Full suite: 302 passed.\n\nImplements TASKS 8.6 and the M8 exit gate.\nRefs: DESIGN 13.2 (M8), 11, 5.3."
+      },
+      "files": [
+        "backend/tests/api/test_lab_integration.py",
+        "docs/knowledge-base/domain/business-rules.md",
+        "docs/knowledge-base/workflows/lab-order-to-result.md",
+        "docs/knowledge-base/KNOWLEDGE-INDEX.md"
+      ],
+      "task_ids": [
+        "8.6"
+      ],
+      "rule_refs": [
+        "§13",
+        "§11",
+        "§5.3"
+      ],
+      "phase": 8,
+      "rationale": "M8 exit-gate cross-role integration test + KB rule #9 and lab workflow diagram.",
+      "depends_on": [
+        69
+      ]
+    },
+    {
+      "seq": 71,
+      "id": "c071",
+      "message": {
+        "subject": "feat(messaging): M9 patient↔care-team messaging + in-app notifications",
+        "body": "Adds v2 M9: patient ↔ care-team messaging and in-app notifications, as one\nend-to-end vertical slice across every layer (DESIGN §13).\n\n- models/messaging.py: MessageThread (unique per patient+staff pair) + Message\n  (append-only, §5.6). models/notification.py: Notification (derived read-model,\n  mark-read allowed).\n- alembic 90dfe13e2800: create message_threads, messages, notifications\n  (reviewed; upgrade+downgrade verified on temp SQLite). Registered in env.py.\n- domain/messaging_rules.can_staff_message_patient: pure care-team scope,\n  mirroring §5.3 (doctor needs treating relationship; nurse may; admin never).\n- repositories/messaging_repository.py + notification_repository.py: DAL only.\n- services/messaging_service.py: send (find-or-create thread, notify recipient,\n  audit message.send), list_threads, get_thread (participant-only; audits\n  message.read / message.read_denied). services/notification_service.py: the\n  single notify() choke point + list/unread_count/mark_read/mark_all_read.\n- Event emission wired into appointment_service (booked/status-change),\n  lab_service (resulted), prescription_service (created).\n- api/v1/messages.py: threads, thread detail, send, notifications feed,\n  mark-read, read-all. schemas/messaging.py. Registered in api/router.py.\n- web/messaging.py + templates (inbox, thread, notification feed + HTMX\n  partials); sidebar links for patient/doctor/nurse; app.css chat/feed styles.\n- KB: business-rules Rule #10, workflows/messaging-and-notifications.md,\n  KNOWLEDGE-INDEX updated.\n\nAll green. Full suite: 320 passed.\n\nImplements TASKS 9.1–9.5 and the M9 exit gate.\nRefs: DESIGN §13 (M9), §5.3, §5.6, §5.7."
+      },
+      "files": [
+        "backend/app/models/messaging.py",
+        "backend/app/models/notification.py",
+        "backend/alembic/versions/20260905_1614_90dfe13e2800_create_messaging_and_notification_tables.py",
+        "backend/alembic/env.py",
+        "backend/app/domain/messaging_rules.py",
+        "backend/app/repositories/messaging_repository.py",
+        "backend/app/repositories/notification_repository.py",
+        "backend/app/services/messaging_service.py",
+        "backend/app/services/notification_service.py",
+        "backend/app/services/appointment_service.py",
+        "backend/app/services/lab_service.py",
+        "backend/app/services/prescription_service.py",
+        "backend/app/schemas/messaging.py",
+        "backend/app/api/v1/messages.py",
+        "backend/app/api/router.py",
+        "backend/app/web/messaging.py",
+        "backend/app/main.py",
+        "backend/app/web/templates/messages/inbox.html",
+        "backend/app/web/templates/messages/thread.html",
+        "backend/app/web/templates/messages/partials/thread_list.html",
+        "backend/app/web/templates/messages/partials/message_list.html",
+        "backend/app/web/templates/notifications/feed.html",
+        "backend/app/web/templates/notifications/partials/feed_list.html",
+        "backend/app/web/templates/dashboard/_base.html",
+        "backend/app/web/static/app.css",
+        "backend/tests/domain/test_messaging_rules.py",
+        "backend/tests/services/test_messaging_service.py",
+        "backend/tests/services/test_notification_service.py",
+        "backend/tests/api/test_messages.py",
+        "backend/tests/web/test_messaging_web.py",
+        "docs/knowledge-base/domain/business-rules.md",
+        "docs/knowledge-base/workflows/messaging-and-notifications.md",
+        "docs/knowledge-base/KNOWLEDGE-INDEX.md",
+        "docs/TASKS.md",
+        "README.md"
+      ],
+      "task_ids": [
+        "9.1",
+        "9.2",
+        "9.3",
+        "9.4",
+        "9.5"
+      ],
+      "rule_refs": [
+        "§13",
+        "§5.3",
+        "§5.6",
+        "§5.7"
+      ],
+      "phase": 9,
+      "rationale": "M9 messaging & notifications end-to-end: care-team-scoped threads, event-driven in-app notifications, KB Rule #10 + workflow.",
+      "depends_on": [
+        70
+      ]
+    },
+    {
+      "seq": 72,
+      "id": "c072",
+      "message": {
+        "subject": "feat(llm): add LLM component layer (stub-default, opt-in real providers)",
+        "body": "Introduces core/llm: the app's first AI infrastructure, treating an LLM as a\nsystem component rather than a chatbot (DESIGN §14, ADR-0006). This is the\nworked example behind the companion book's Chapter 2.\n\n- core/llm/client.py: LLMClient wrapping a raw call in the five disciplines —\n  output contracts (validated AssistantSchema), reliability (retry w/ exponential\n  backoff + jitter, transparent fallback model, per-request timeout), determinism\n  (input-hash cache → effective determinism), routing (triage/reasoning tiers),\n  observability (a CallRecord per call). Exhausted-chain errors preserve the\n  specific failure type (e.g. SchemaValidationError).\n- core/llm/providers.py: Provider protocol + ProviderResult. StubProvider is the\n  DEFAULT — deterministic, offline, no SDK; resolves $ref/$defs enums so structured\n  responses validate. AnthropicProvider/OpenAIProvider are opt-in with lazily\n  imported SDKs and an actionable error when the package is missing.\n- core/llm/errors.py: typed LLMError family (extends AppError → central HTTP map);\n  ProviderError carries `retryable`; distinct SchemaValidationError and LLMRefusal.\n- core/llm/observability.py: CallRecord (model/tokens/latency/stop_reason/cache_hit/\n  fallback_used/attempts) logged to 'healthyvytals.llm'; CallStats aggregate. Kept\n  separate from the compliance audit trail (ADR-0005).\n- core/llm/schemas.py: AssistantSchema base (json_schema_for_prompt + validation).\n- core/config.py: HV_LLM_* settings (provider, api key, tier→model routing, fallback,\n  timeout, retries, cache) + model_for_tier(); .env.example documents them.\n- tests/core/llm/test_llm_client.py: 15 offline tests across all five disciplines\n  (fake provider + stub; sleep stubbed so backoff is instant).\n\nDefault provider is the offline stub, so the app boots and the full suite runs with\nno API key and no vendor SDK (ADR-0006, mirrors ADR-0001's SQLite default).\nFull suite: 335 passed.\n\nImplements TASKS 12.1–12.2. Refs: DESIGN §14, ADR-0006."
+      },
+      "files": [
+        "backend/app/core/llm/__init__.py",
+        "backend/app/core/llm/errors.py",
+        "backend/app/core/llm/observability.py",
+        "backend/app/core/llm/schemas.py",
+        "backend/app/core/llm/providers.py",
+        "backend/app/core/llm/client.py",
+        "backend/app/core/config.py",
+        ".env.example",
+        "backend/tests/core/llm/__init__.py",
+        "backend/tests/core/llm/test_llm_client.py"
+      ],
+      "task_ids": [
+        "12.1",
+        "12.2"
+      ],
+      "rule_refs": [
+        "§14"
+      ],
+      "phase": 12,
+      "rationale": "LLM component layer: contracts+reliability+determinism+routing+observability, stub-default/opt-in real providers (ADR-0006).",
+      "depends_on": [
+        71
+      ]
+    },
+    {
+      "seq": 73,
+      "id": "c073",
+      "message": {
+        "subject": "feat(vitals): add rule-grounded AI vitals triage assistant",
+        "body": "Adds the app's first AI-assisted use case on top of core/llm (DESIGN §14, M12,\nRule #11): a vitals triage assistant that produces a structured, advisory\nVitalsAssessment to help staff prioritize recorded vitals.\n\n- core/llm/vitals_schema.py: VitalsAssessment output contract (summary, urgency\n  enum, red_flags, recommended_action, confidence).\n- services/vitals_assistant_service.py: composes the PURE domain rule\n  vitals_ranges.flag_out_of_range (Rule #5, ground truth) with the LLM, which only\n  explains/prioritizes the flags. Safety clamp: a flagged reading can never be\n  'routine'. Safe degradation: on LLM refusal/error, returns a rules-only\n  assessment instead of failing. Audited via record_audit (Rule #7) as\n  llm.vitals_assessed / llm.vitals_assessed_degraded.\n- tests/services/test_vitals_assistant_service.py: 6 offline tests (ground-truth\n  wins, degradation, urgency clamp, audit rows).\n- KB in lockstep: business-rules Rule #11, ADR-0006, workflows/vitals-assistant.md,\n  KNOWLEDGE-INDEX; DESIGN §14; TASKS Phase 12; README AI section.\n\nDecision-support, human-in-the-loop — never diagnosis (Non-Goals). Runs offline via\nthe stub provider. Full suite: 341 passed.\n\nImplements TASKS 12.3–12.5 and the M12 exit gate. Refs: DESIGN §14, §5.5, §5.7, ADR-0006."
+      },
+      "files": [
+        "backend/app/core/llm/vitals_schema.py",
+        "backend/app/services/vitals_assistant_service.py",
+        "backend/tests/services/test_vitals_assistant_service.py",
+        "docs/DESIGN.md",
+        "docs/knowledge-base/adr/ADR-0006-llm-component-layer.md",
+        "docs/knowledge-base/domain/business-rules.md",
+        "docs/knowledge-base/workflows/vitals-assistant.md",
+        "docs/knowledge-base/KNOWLEDGE-INDEX.md",
+        "docs/TASKS.md",
+        "README.md"
+      ],
+      "task_ids": [
+        "12.3",
+        "12.4",
+        "12.5"
+      ],
+      "rule_refs": [
+        "§14",
+        "§5.5",
+        "§5.7"
+      ],
+      "phase": 12,
+      "rationale": "AI vitals assistant: rule-grounded (Rule #5 is source of truth), human-in-the-loop, safe degradation, audited; KB Rule #11 + workflow.",
+      "depends_on": [
+        72
+      ]
+    },
+    {
+      "seq": 74,
+      "id": "c074",
+      "message": {
+        "subject": "feat(vitals): expose AI vitals assistant via API + nurse web UI",
+        "body": "Makes the M12 vitals assistant reachable by users, not just callable in code\n(DESIGN §14.5a, Rule #11 exposure). Real backend models work automatically when\nHV_LLM_PROVIDER + HV_LLM_API_KEY are set; the offline stub serves it otherwise.\n\n- services/vitals_assistant_service.assess_encounter_vitals: resolves an encounter's\n  patient age + latest recorded reading, enforces the §5.3 treating-relationship rule\n  for doctors (audited llm.vitals_assessed_denied on refusal), then delegates to\n  assess_vitals. Nurses are permitted triage-wide.\n- schemas/encounter.VitalsAssessmentOut: wire model mirroring the LLM output contract\n  (the contract is not leaked directly to clients).\n- api/v1/encounters.py: POST /{id}/vitals-assessment (coarse nurse/doctor role gate).\n- web/clinical.py: POST /clinical/appointments/{id}/vitals-assessment renders an HTMX\n  partial; vitals_result.html gains a 'Get AI triage assist' button + target; new\n  partial vitals_assessment.html with urgency badge + 'advisory, not a diagnosis'\n  disclaimer; urgency-badge CSS in app.css.\n- tests: api/test_vitals_assessment.py (5 — role gate, treating-relationship deny,\n  vitals-first precondition) + web/test_vitals_assistant_web.py (3).\n- KB in lockstep: Rule #11 (exposure + tests), workflows/vitals-assistant.md entry\n  points, DESIGN §14.5a, TASKS 12.6–12.8, README.\n\nRuns offline via the stub; full suite: 349 passed.\n\nImplements TASKS 12.6–12.8 and the M12 exposure gate. Refs: DESIGN §14, §5.3, §5.7."
+      },
+      "files": [
+        "backend/app/services/vitals_assistant_service.py",
+        "backend/app/schemas/encounter.py",
+        "backend/app/api/v1/encounters.py",
+        "backend/app/web/clinical.py",
+        "backend/app/web/templates/encounters/partials/vitals_result.html",
+        "backend/app/web/templates/encounters/partials/vitals_assessment.html",
+        "backend/app/web/static/app.css",
+        "backend/tests/api/test_vitals_assessment.py",
+        "backend/tests/web/test_vitals_assistant_web.py",
+        "docs/DESIGN.md",
+        "docs/knowledge-base/domain/business-rules.md",
+        "docs/knowledge-base/workflows/vitals-assistant.md",
+        "docs/TASKS.md",
+        "README.md"
+      ],
+      "task_ids": [
+        "12.6",
+        "12.7",
+        "12.8"
+      ],
+      "rule_refs": [
+        "§14",
+        "§5.3",
+        "§5.7"
+      ],
+      "phase": 12,
+      "rationale": "Expose the vitals assistant to users: API endpoint + nurse HTMX panel, §5.3 authz, real-model-when-keyed; docs/ledger in lockstep.",
+      "depends_on": [
+        73
+      ]
+    },
+    {
+      "seq": 75,
+      "id": "c075",
+      "message": {
+        "subject": "feat(vitals): vitals trend charts on history (Chart.js, scoped read)",
+        "body": "Plots a patient's vitals over time on the medical-history page (DESIGN §15.1, M13,\ncompletes M10.4; Rule #12, ADR-0007).\n\n- repositories/encounter_repository.vitals_for_patient: join vitals via the owning\n  encounter, oldest-first.\n- services/clinical_service.get_vitals_series: same authorization + consent gate as\n  reading history (can_view_patient_history + is_encounter_visible), audited\n  vitals_series.read / read_denied.\n- api/v1/patients.py: GET /patients/{id}/vitals-series -> VitalsSeriesOut; registered\n  in api/router. schemas/encounter: VitalsPoint + VitalsSeriesOut.\n- Vendored Chart.js UMD (app/web/static/chart.umd.min.js) — one static file, no build\n  (ADR-0007). base.html gains a head_extra block; history.html renders a canvas + init\n  script (progressive enhancement: raw vitals stay listed if JS/fetch fails or <2 pts).\n- app.css: chart-frame styles. KB: Rule #12, ADR-0007, workflows/vitals-trends.md,\n  KNOWLEDGE-INDEX; DESIGN §15.1; TASKS 10.4/13.1-13.2.\n- tests: api/test_vitals_series.py (4), web/test_vitals_trends_web.py (1).\n\nRuns offline; full suite green. Refs: DESIGN §15, §5.3, §5.8, ADR-0007."
+      },
+      "files": [
+        "backend/app/repositories/encounter_repository.py",
+        "backend/app/services/clinical_service.py",
+        "backend/app/schemas/encounter.py",
+        "backend/app/api/v1/patients.py",
+        "backend/app/api/router.py",
+        "backend/app/web/static/chart.umd.min.js",
+        "backend/app/web/templates/base.html",
+        "backend/app/web/templates/encounters/history.html",
+        "backend/app/web/static/app.css",
+        "backend/tests/api/test_vitals_series.py",
+        "backend/tests/web/test_vitals_trends_web.py",
+        "docs/knowledge-base/adr/ADR-0007-client-charting-vendored-chartjs.md",
+        "docs/knowledge-base/domain/business-rules.md",
+        "docs/knowledge-base/workflows/vitals-trends.md",
+        "docs/knowledge-base/KNOWLEDGE-INDEX.md",
+        "docs/DESIGN.md",
+        "docs/TASKS.md",
+        "README.md"
+      ],
+      "task_ids": [
+        "10.4",
+        "13.1",
+        "13.2"
+      ],
+      "rule_refs": [
+        "§15",
+        "§5.3",
+        "§5.8"
+      ],
+      "phase": 13,
+      "rationale": "Vitals trend charts: scoped series endpoint + vendored Chart.js on history page.",
+      "depends_on": [
+        74
+      ]
+    },
+    {
+      "seq": 76,
+      "id": "c076",
+      "message": {
+        "subject": "feat(appointments): show times/doctor + patient cancel on My Appointments",
+        "body": "Improves the existing Phase-2 booking flow (DESIGN §15.2, M13) without rebuilding the\nservice.\n\n- repositories/appointment_repository: scheduled_for_patient + _scheduled now aliases\n  User twice (patient + doctor email) and carries cancelled_late.\n- web/appointments.py: my_appointments uses the display join; new POST /{id}/cancel\n  delegates to appointment_service.change_status(CANCEL) (ownership + state machine +\n  slot freeing + late flag + audit already enforced there) and re-renders the list.\n- templates: mine.html + new partials/appointment_list.html (time, doctor, status pill,\n  HTMX cancel with confirm); polished book.html (grouped slots, formatted times).\n- app.css: status pills, btn-sm, empty-state.\n- tests: 2 new in web/test_appointments_web.py (time+doctor+cancel shown; cancel flow).\n\nFull suite green. Refs: DESIGN §15, §5.1, §5.2."
+      },
+      "files": [
+        "backend/app/repositories/appointment_repository.py",
+        "backend/app/web/appointments.py",
+        "backend/app/web/templates/appointments/mine.html",
+        "backend/app/web/templates/appointments/partials/appointment_list.html",
+        "backend/app/web/templates/appointments/book.html",
+        "backend/app/web/static/app.css",
+        "backend/tests/web/test_appointments_web.py",
+        "docs/DESIGN.md",
+        "docs/TASKS.md",
+        "README.md"
+      ],
+      "task_ids": [
+        "13.3"
+      ],
+      "rule_refs": [
+        "§15",
+        "§5.1",
+        "§5.2"
+      ],
+      "phase": 13,
+      "rationale": "Booking UX: My Appointments shows time/doctor/status + in-place cancel; polished book page.",
+      "depends_on": [
+        75
+      ]
+    },
+    {
+      "seq": 77,
+      "id": "c077",
+      "message": {
+        "subject": "style(ui): cohesive visual refresh within the Pico shell (M13)",
+        "body": "A visual refresh (DESIGN §15.3, M13), pure CSS + template tweaks, no build step\n(ADR-0001 intact).\n\n- app.css: richer teal token ramp, elevation/shadow scale, larger radius, gradient\n  hero, card polish, refined sidebar, active-nav styling, and dark-mode parity. Every\n  pre-existing selector preserved.\n- dashboard/_base.html: sidebar marks the current section aria-current=page (url_for\n  cast to str; matches by exact/prefix path).\n- DESIGN §15.3; README v2 note.\n\nRoute-sweep + full suite green (356). Refs: DESIGN §15, ADR-0001."
+      },
+      "files": [
+        "backend/app/web/static/app.css",
+        "backend/app/web/templates/dashboard/_base.html",
+        "docs/DESIGN.md",
+        "README.md"
+      ],
+      "task_ids": [
+        "13.4"
+      ],
+      "rule_refs": [
+        "§15"
+      ],
+      "phase": 13,
+      "rationale": "Visual refresh: design tokens, elevation, active-nav, status pills, dark-mode — no build step.",
+      "depends_on": [
+        76
+      ]
     }
   ]
 }

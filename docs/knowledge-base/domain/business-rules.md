@@ -225,3 +225,160 @@ patient's own view); non-sensitive records follow normal rules; the gate is a
 `clinical_service.get_patient_history`. Flags on `models/clinical.Encounter`.
 **Tests.** `tests/domain/test_access_scope.py` (consent cases),
 `tests/services/test_clinical_service.py::test_sensitive_encounter_hidden_*`.
+
+## Rule #9 — Lab result flagging & visibility (§13, M8) ✅ v2
+
+**Statement.** A doctor orders a lab on an encounter; clinical staff record result
+values against it; each value is flagged **abnormal** if it falls outside its
+(inclusive) reference range. Viewing a patient's labs follows the same
+treating-relationship scoping as history (Rule #3) + consent (Rule #8).
+
+**Why.** Labs are a distinct cross-role artifact: the *ordering* clinician, the
+*recording* staffer, and the *patient* are often different people, so the rule
+must separate who-can-order (owning doctor) from who-can-record (any clinical
+staff) from who-can-view (scoped). Flagging at record time — with the reference
+range stored alongside — keeps the abnormal marker explainable after the fact.
+
+**Edge cases.**
+- Reference bounds are **inclusive**; either bound may be open-ended (`None`); with
+  no range a value is never abnormal.
+- Results are **append-only** (§5.6): recording adds rows and moves the order to
+  `resulted`; prior results are never edited.
+- Only the **owning doctor** may order; only **clinical staff** may record; a
+  patient may view **only their own** labs; a **non-treating doctor is denied**
+  (audited `lab.read_denied`). Admin has no clinical read.
+
+**Enforced in.** `app/domain/lab_rules.is_abnormal` (pure) +
+`app/services/lab_service.py` (order/record/view, reusing
+`access_scope.can_view_patient_history`). Models in `app/models/lab.py`.
+**Tests.** `tests/domain/test_lab_rules.py`, `tests/services/test_lab_service.py`,
+`tests/api/test_labs.py`, `tests/web/test_labs_web.py`,
+`tests/api/test_lab_integration.py`.
+
+## Rule #10 — Care-team messaging & event notifications (§13, M9) ✅ v2
+
+**Statement.** A patient and a clinical-staff member exchange messages in a single
+shared thread per (patient, staff) pair; only the two participants may read it.
+Who may be the *staff* side follows the same treating-relationship scoping as
+history (Rule #3): a doctor needs a treating relationship, a nurse may message any
+patient, and an admin is never a care-conversation participant. Separately,
+domain events (a message sent, an appointment booked/cancelled, a lab resulted, a
+prescription written) raise an in-app **notification** for the affected user.
+
+**Why.** Messaging must not become an open inbox — a patient's clinical
+correspondents are exactly their care team, so reusing the §5.3 relationship
+avoids inventing a second, divergent access rule. Notifications are a *derived
+read-model*, not a clinical record: they are emitted as a best-effort side effect
+inside the same unit of work as the event (so an event and its alert commit
+together), and — unlike append-only clinical rows — the recipient may mark them
+read.
+
+**Edge cases.**
+- A thread is **unique per (patient, staff) pair** (DB constraint); "starting a
+  new conversation" with someone you already message reuses the existing thread.
+- Messages are **append-only** (§5.6): never edited or deleted.
+- A **non-treating doctor** and any **non-participant** are denied reading a thread
+  (audited `message.read_denied`, committed so it survives the raise), mirroring
+  the lab/history read-deny path.
+- Notifications are **scoped to their owner**: `mark_read` refuses another user's
+  notification (returns `False`, not an error) and is idempotent.
+- An empty/whitespace message body is rejected (`ValidationError`).
+
+**Enforced in.** `app/domain/messaging_rules.can_staff_message_patient` (pure) +
+`app/services/messaging_service.py` (send/list/read, reusing
+`encounter_repository.has_treating_relationship`) and
+`app/services/notification_service.py` (the single `notify` choke point, plus
+read/mark-read). Emission is wired into `appointment_service`, `lab_service`, and
+`prescription_service`. Models in `app/models/messaging.py` +
+`app/models/notification.py`.
+**Tests.** `tests/domain/test_messaging_rules.py`,
+`tests/services/test_messaging_service.py`,
+`tests/services/test_notification_service.py`, `tests/api/test_messages.py`,
+`tests/web/test_messaging_web.py`.
+
+---
+
+## Rule #11 — AI vitals assistant: rule-grounded, human-in-the-loop (§14, M12) ✅ v2
+
+**Statement.** The vitals triage assistant produces a structured, advisory
+`VitalsAssessment` (summary, urgency, red flags, recommended action, confidence)
+to help staff prioritize a set of recorded vitals. The **deterministic, age-based
+flags from Rule #5 (`flag_out_of_range`) are authoritative**: they are passed into
+the model, the model may only *explain and prioritize* them, and it may never set
+its own thresholds or contradict the rule. If a real flag exists, the assessment's
+urgency can never be "routine" (a safety clamp bumps it to at least "elevated").
+The assistant is **decision-support only** — a clinician always decides — and on
+any model failure or refusal it **degrades** to a rules-only assessment rather than
+failing the caller.
+
+**Why.** A non-deterministic model must not silently override a validated clinical
+rule — that would make patient-safety behavior unpredictable and untestable. So the
+rule leads and the model explains, which keeps the safety-critical decision
+deterministic while still giving staff a readable, prioritized summary. Framing it
+as advisory (never diagnosis) honors the Non-Goals and the responsible-AI posture
+(*AI in the loop, human at the center*). Degrading to rules-only means the feature
+adds value even when the model is unavailable — the app never depends on a paid API
+to function (mirrors the SQLite-default posture, ADR-0001/ADR-0006).
+
+**Edge cases.**
+- **All vitals normal** → urgency "routine", no red flags, confidence 1.0.
+- **Model refuses / errors / times out** → rules-only assessment; a distinct audit
+  action `llm.vitals_assessed_degraded` records that the fallback path ran.
+- **Model returns "routine" despite a real flag** → clamped up to "elevated"
+  (the deterministic flag wins).
+- **Malformed model output** → re-asked within the retry budget, then a typed
+  `SchemaValidationError`; the caller never sees a half-parsed object.
+- **Offline / no API key (default)** → the deterministic **stub** provider serves a
+  schema-valid response, so the flow works with no network or SDK.
+
+**Enforced in.** `app/services/vitals_assistant_service.py` (composition, safety
+clamp, degradation, audit; `assess_encounter_vitals` resolves the encounter's
+age + latest reading and applies the §5.3 treating-relationship rule for doctors),
+built on the LLM component layer `app/core/llm/` (`client.py` — the five
+disciplines; `providers.py` — stub-default/opt-in real; `vitals_schema.py` — the
+`VitalsAssessment` output contract). Ground-truth flags come from the pure
+`app/domain/vitals_ranges.flag_out_of_range` (Rule #5). AI use is audited via
+`services/audit_service.record_audit` (Rule #7:
+`llm.vitals_assessed` / `…_degraded` / `…_denied`).
+**Exposed to users (M12 exposure slice, c074).** API:
+`POST /api/v1/encounters/{id}/vitals-assessment` (nurse or treating doctor;
+`schemas/encounter.VitalsAssessmentOut`). Web: an HTMX "Get AI triage assist"
+panel on the nurse vitals-entry screen (`web/clinical.vitals_assessment`,
+`templates/encounters/partials/vitals_assessment.html`). Both use the configured
+provider — the offline stub by default, or a real model when `HV_LLM_PROVIDER` +
+`HV_LLM_API_KEY` are set. See
+[ADR-0006](../adr/ADR-0006-llm-component-layer.md) and
+[workflows/vitals-assistant.md](../workflows/vitals-assistant.md).
+**Tests.** `tests/core/llm/test_llm_client.py`,
+`tests/services/test_vitals_assistant_service.py`,
+`tests/api/test_vitals_assessment.py`, `tests/web/test_vitals_assistant_web.py`.
+
+---
+
+## Rule #12 — Vitals trends read scoping (§15, M13) ✅ v2
+
+**Statement.** A patient's vitals **series** (the same measurements over time, used for trend
+charts) is readable under the **identical** rule as their medical history (Rule #3 / §5.3): a
+patient sees only their own; a doctor needs a treating relationship; a nurse may read; an admin may
+not. Sensitive encounters are filtered by the same consent gate as history (§5.8), so a staff
+member without shared consent never sees vitals from a sensitive encounter — even in a chart.
+
+**Why.** A chart is just another *read* of PHI, so it must not open a softer side-door than the
+history page it sits beside. Reusing `can_view_patient_history` + `is_encounter_visible` (rather
+than inventing a second predicate) guarantees the trend view and the history view can never drift
+apart in what they expose. The read is audited (`vitals_series.read` / `vitals_series.read_denied`)
+exactly like history (Rule #7).
+
+**Edge cases.**
+- **< 2 points** → the client shows an empty-state note instead of a chart (nothing to trend).
+- **Consent-gated encounter** → its vitals are excluded from the series for staff without shared
+  consent (identical to history visibility).
+- **Chart JS unavailable / fetch fails** → the raw vitals remain listed on the page (progressive
+  enhancement); no clinical data is hidden behind the script (ADR-0007).
+
+**Enforced in.** `app/services/clinical_service.get_vitals_series` (authz + consent + audit) over
+`app/repositories/encounter_repository.vitals_for_patient` (DAL join). Exposed read-only at
+`GET /api/v1/patients/{id}/vitals-series` (`schemas/encounter.VitalsSeriesOut`); rendered by
+Chart.js (vendored, [ADR-0007](../adr/ADR-0007-client-charting-vendored-chartjs.md)) on the history
+page. See [workflows/vitals-trends.md](../workflows/vitals-trends.md).
+**Tests.** `tests/api/test_vitals_series.py`, `tests/web/test_vitals_trends_web.py`.

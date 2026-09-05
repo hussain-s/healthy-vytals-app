@@ -639,3 +639,158 @@ All five open decisions are now settled. These are locked for v1.
 
 *Decisions locked. The phased build proceeds per §9 (plan) and §9A (methodology), with each
 functionality journaled to the commit ledger (§9A.6) and the knowledge base kept in lockstep.*
+
+---
+
+## 13. v2 Scope Addendum — Feature Depth & Rich UI (Milestones 7–11)
+
+> **Added 2026-08-09.** Phases 0–6 delivered a complete, tested domain + JSON API and a
+> *thin* web UI. In review the app "looked empty" for staff: the domain and API are complete
+> for all roles, but the **web UI only surfaced patient screens** and left the doctor / nurse /
+> admin dashboards as placeholder text. This addendum expands scope to make the product feel
+> complete end-to-end across all three roles, and adds domains that were never in v1 (lab
+> results, messaging, documents). Same methodology (§9A): one functionality = one ledger slice,
+> tests + KB in lockstep.
+
+### 13.1 Confirmed decisions for v2
+- **Launch intent: phased.** Build feature/UI depth now while **staying local-first** (SQLite
+  default, no Docker, one-command run — ADR-0001 unchanged). Production hardening (Postgres,
+  HTTPS, secrets, deploy, compliance) is a **separate later milestone (M-Prod)**, explicitly not
+  in this batch.
+- **UI: vendored classless CSS framework (Pico.css) + a role-aware app shell.** One static file,
+  **no Node/build step** (honors §7.3 / ADR-0001). Adds a sidebar-nav layout, cards, tables,
+  and form styling shared across roles.
+- **Autonomy: multi-milestone**, checkpoint at each milestone boundary.
+
+### 13.2 Milestones
+- **M7 — Real role dashboards + UI shell.** App shell + per-role control centers wired to the
+  *existing* services: doctor worklist/calendar + treated-patient list + open-encounter flow;
+  nurse ward board + check-in + **vitals-entry UI** (was API-only); admin **user console**
+  (list/provision/activate-deactivate) + **audit-log viewer** with filters; patient overview home.
+- **M8 — Lab results & reports (new domain).** Doctor orders a lab on an encounter → nurse/lab
+  records results (abnormal values flagged) → patient + treating doctor view → doctor reviews.
+  New entities `LabOrder`, `LabResult`; visibility reuses treating-relationship scoping (§5.3)
+  + consent (§5.8); new business rule for result flagging. Full stack + KB.
+- **M9 — Messaging & in-app notifications.** Secure in-app `Message` threads between a patient
+  and their care team; an in-app `Notification` feed for domain events (appointment booked/
+  cancelled, lab result ready, new message). No email/SMS (local-first). Full stack + KB.
+- **M10 — Documents & vitals trends.** Patient `Document` area (upload/download, stored under a
+  local, git-ignored path) and vitals **trend charts** over time on the history page (inline
+  SVG rendered server-side + HTMX — no charting-JS build). Full stack + KB.
+- **M11 — Polish, rich seed, e2e verification.** Seed the new domains for a full cross-role demo
+  journey; per-role integration tests; README + KB finalize; end-to-end verification.
+
+### 13.3 End-to-end integration story (the v2 acceptance narrative)
+> patient books → nurse checks in & records vitals → doctor consults, **orders a lab**, diagnoses
+> → nurse/lab **records the result** → patient & doctor are **notified** → patient **views the
+> result and messages** the doctor → doctor reviews and **prescribes**. Every step audited; every
+> read scoped by role + treating-relationship + consent.
+
+### 13.4 Non-Goals (still out, even in v2)
+Real hosting/HTTPS/secrets management, HIPAA certification, external EHR/FHIR, real drug/lab
+reference databases, payments/insurance, email/SMS delivery, and any Node/JS build step.
+
+---
+
+## 14. AI Addendum — the LLM component layer & vitals assistant (Milestone M12)
+
+> Added 2026-09-05. This addendum introduces the app's first AI-assisted feature. It is the
+> worked example behind Chapter 2 of the companion book ("Working with LLMs in Real Systems"):
+> wiring an LLM into a real application **as a system component**, not a chatbot. See
+> [ADR-0006](knowledge-base/adr/ADR-0006-llm-component-layer.md) for the decision record and
+> Rule #11 in the knowledge base for the business rule.
+
+### 14.1 Intent & guardrails
+- **What it does.** A **vitals triage assistant** turns a patient's age + recorded vitals into a
+  short, structured, plain-language **`VitalsAssessment`** (`summary`, `urgency`, `red_flags`,
+  `recommended_action`, `confidence`) that helps triage staff prioritize.
+- **Decision-support, human-in-the-loop — never diagnosis.** The output is advisory; a clinician
+  decides. This honors the Non-Goals ("not medical advice"). *AI in the loop, human at the center.*
+- **The deterministic rule is the source of truth.** `domain/vitals_ranges.flag_out_of_range`
+  (Rule #5) computes the authoritative out-of-range flags; the model **explains and prioritizes**
+  those flags and must never set thresholds or contradict them. A safety clamp bars the model from
+  downgrading a flagged reading to "routine".
+
+### 14.2 The LLM as a system component (the five disciplines)
+`core/llm/LLMClient` wraps a raw model call in the disciplines that make it dependable — the spine
+of the whole addendum:
+1. **Output contracts** — `analyze()` returns a validated `AssistantSchema` subclass, never free
+   text; invalid output is re-asked, then surfaced as a typed error.
+2. **Reliability** — per-model retries with exponential backoff **+ jitter**, a transparent
+   **fallback model**, and a per-request **timeout**.
+3. **Determinism** — an **input-hash cache** gives *effective determinism* (temperature is a dial,
+   not a switch; the model isn't deterministic, the system is).
+4. **Routing** — a `triage` vs `reasoning` **tier** selects a cheap/fast vs. capable model per call.
+5. **Observability** — every call emits one `CallRecord` (model, tokens, latency, stop reason,
+   cache hit, fallback, attempts).
+
+### 14.3 Providers — stub default, real opt-in (mirrors ADR-0001)
+- **Default `HV_LLM_PROVIDER=stub`**: a deterministic, offline provider. No API key, no SDK. It is
+  what lets the app boot and the **entire test suite pass on a fresh clone** — the same philosophy
+  as the SQLite default.
+- **Opt-in `anthropic` / `openai`**: real providers whose SDKs are imported **lazily** only when
+  selected, configured via `HV_LLM_API_KEY` and the `HV_LLM_MODEL_*` ids — the same philosophy as
+  Postgres being opt-in.
+
+### 14.4 Safety, degradation & audit
+- On any LLM failure or refusal the service **degrades safely** to a rules-only assessment built
+  from the deterministic flags, so a caller is never blocked.
+- Every invocation is **audited** (Rule #7): `llm.vitals_assessed`, or
+  `llm.vitals_assessed_degraded` when the fallback path was taken.
+
+### 14.5 Layering (unchanged rules, ADR-0004)
+`core/llm/` is cross-cutting infrastructure (like `core/security`). Services call the client and
+compose the **pure** domain function; `domain/` never imports `core/llm`. LLM telemetry is a
+**logging** concern (`CallRecord`), kept distinct from the compliance **audit** trail (ADR-0005).
+
+### 14.5a User-facing exposure (slice c074)
+The assistant is reachable through the app's normal layers, not just as a library:
+- **API:** `POST /api/v1/encounters/{id}/vitals-assessment` (thin controller; coarse role gate for
+  nurse/doctor) → `services/vitals_assistant_service.assess_encounter_vitals`, which resolves the
+  encounter's patient age + latest recorded reading, enforces the §5.3 treating-relationship rule for
+  doctors (audited `llm.vitals_assessed_denied` on refusal), and returns `schemas/encounter`
+  `VitalsAssessmentOut` (a wire model — the LLM output contract is never leaked directly).
+- **Web (nurse):** the vitals-entry screen gains an HTMX "Get AI triage assist" button that renders
+  the assessment as a partial (`web/clinical.vitals_assessment`) with an urgency badge and the
+  "advisory, not a diagnosis" disclaimer.
+A real backend model is used automatically when `HV_LLM_PROVIDER` + `HV_LLM_API_KEY` are configured;
+otherwise the offline stub serves it.
+
+### 14.6 Non-Goals for the AI layer
+No fine-tuning or training; no real medical knowledge base or clinical validation; no autonomous
+action (the assistant only advises); no evaluation harness yet (measuring real-model answer quality
+is a later milestone, M-Eval — the stub validates *plumbing*, not answer quality); the model never
+replaces a clinical rule.
+
+---
+
+## 15. Vitals trends, booking UX & visual refresh (Milestone M13)
+
+> Added 2026-09-05. Three UI/feature slices completing part of M10 and adding a visual refresh.
+
+### 15.1 Vitals trend charts (completes M10.4; Rule #12, ADR-0007)
+A patient's recorded vitals are plotted over time on the medical-history page.
+- **Data:** `GET /api/v1/patients/{id}/vitals-series` returns time-ordered points, scoped by the
+  **same** authorization + consent rules as reading history (`clinical_service.get_vitals_series`,
+  reusing `can_view_patient_history` + `is_encounter_visible`; audited `vitals_series.read` /
+  `…_denied`). Repo: `EncounterRepository.vitals_for_patient` (join on the owning encounter).
+- **Rendering:** [Chart.js], **vendored as one static file** (ADR-0007) — no npm/build, consistent
+  with the vendored HTMX/Pico. Loaded only on charting pages via a `head_extra` block. Progressive
+  enhancement: the raw vitals remain listed, so a failed/blocked script never hides clinical data.
+
+### 15.2 Appointment booking UX (improves existing Phase-2 flow — not a rebuild)
+- "My appointments" now shows **when** each visit is (slot start/end) and **which doctor**, with a
+  status pill — via a display-join (`AppointmentRepository.scheduled_for_patient`).
+- Patients can **cancel** from the list: an HTMX action → `appointment_service.change_status(...,
+  CANCEL)`, which enforces ownership + the §5.1 state machine, frees the slot, flags late
+  cancellation (§5.2), and audits. The list re-renders as a partial. The booking service is unchanged.
+
+### 15.3 Visual refresh (M13)
+A cohesive refresh **within** the Pico shell (honors ADR-0001 — no Node/build): a richer teal
+design-token ramp, elevation/shadow scale, card polish, a gradient hero, active-link highlighting in
+the sidebar, status pills, and **dark-mode parity**. Pure CSS + template tweaks; every pre-existing
+class is preserved and the route-sweep test stays green.
+
+### 15.4 Non-Goals (still out)
+No JS build step (Chart.js is vendored, not bundled); no charting beyond vitals; no rescheduling UI
+(cancel only, for now); no theming controls (auto dark-mode via `prefers-color-scheme`).

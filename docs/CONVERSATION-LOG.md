@@ -200,10 +200,18 @@ route-test sweep, a finalized README, a rewritten PROJECT-BRIEF, and end-to-end 
 which caught and fixed a real bug (demo emails used the reserved `.local` TLD that Pydantic
 `EmailStr` rejects; switched to `@healthyvytals.example.com`).
 
-**The build is functionally complete.** Remaining work is external to this environment: initialize
-git and **replay the deferred-commit ledger** (`docs/commits/ledger.json`, 58 entries) into a clean
-history — see `docs/commits/README.md`. Demo accounts (password `Passw0rd!`):
-`patient@ / nurse@ / doctor@ / admin@healthyvytals.example.com`.
+**v2 in progress (DESIGN §13).** After review found the web UI too thin (staff dashboards were
+placeholders), a v2 scope was added: M7–M11 for feature depth + rich UI, staying local-first.
+**M7 (real role dashboards + UI shell) is COMPLETE** (c059–c065): vendored Pico.css + role-aware
+sidebar app shell; working doctor worklist (→ open-encounter → diagnose/prescribe), nurse ward
+board + browser vitals-entry, admin user console + audit-log viewer, patient overview home. Also
+hardened setup (Python 3.11–3.13 guard + stale-venv rebuild) after cross-machine failures. **279
+tests passing (65 ledger slices, c001–c065).** Next: **M8 (lab results & reports)**, then M9
+(messaging/notifications), M10 (documents/trends), M11 (polish/rich seed/e2e).
+
+Demo accounts (password `Passw0rd!`): `patient@ / nurse@ / doctor@ / admin@healthyvytals.example.com`.
+Git is still not initialized here; the deferred-commit ledger (`docs/commits/ledger.json`, 65
+entries) replays into a clean history — see `docs/commits/README.md`.
 
 Phase 1 (Accounts & RBAC): User + 1:1 profiles + AuditLog; auth service (register/login/refresh)
 + `core/security`/`core/deps`; auth + admin-provisioning endpoints; append-only audit; 4-role
