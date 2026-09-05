@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}HealthyVytals{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('web-static', path='app.css') }}" />
+    <!-- HTMX is vendored (no CDN, no Node). Enables partial page updates. -->
+    <script src="{{ url_for('web-static', path='htmx.min.js') }}" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{{ url_for('web-landing') }}">HealthyVytals</a>
+      <nav class="site-nav">
+        {% block nav %}{% endblock %}
+      </nav>
+    </header>
+
+    <main class="site-main">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      <small>HealthyVytals — local-first medical portal (educational reference app).</small>
+    </footer>
+  </body>
+</html>

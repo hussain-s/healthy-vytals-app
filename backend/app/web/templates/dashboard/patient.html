@@ -1,0 +1,14 @@
+{% extends "dashboard/_base.html" %}
+
+{% block title %}Patient dashboard — HealthyVytals{% endblock %}
+{% block dash_title %}Welcome, {{ user.email }}{% endblock %}
+
+{% block dash_content %}
+  <p>As a patient you can book appointments and review your medical history.</p>
+  <ul class="dash-actions">
+    <li><a href="{{ url_for('web-book') }}">Book an appointment</a></li>
+    <li><a href="{{ url_for('web-my-appointments') }}">My appointments</a></li>
+    <li><a href="{{ url_for('web-my-history') }}">My medical history</a></li>
+    <li><a href="{{ url_for('web-my-prescriptions') }}">My prescriptions</a></li>
+  </ul>
+{% endblock %}

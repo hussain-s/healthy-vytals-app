@@ -1,0 +1,15 @@
+{#
+  HTMX-swappable list of an encounter's diagnoses, re-rendered after each add.
+#}
+{% if error %}
+  <p class="form-error" role="alert">{{ error }}</p>
+{% endif %}
+{% if diagnoses %}
+  <ul class="diagnosis-list">
+    {% for d in diagnoses %}
+      <li><strong>{{ d.icd_code }}</strong> — {{ d.description }}</li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="dash-note">No diagnoses yet.</p>
+{% endif %}

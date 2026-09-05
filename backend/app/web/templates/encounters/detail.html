@@ -1,0 +1,67 @@
+{% extends "dashboard/_base.html" %}
+
+{% block title %}Encounter #{{ encounter.id }} — HealthyVytals{% endblock %}
+{% block dash_title %}Encounter #{{ encounter.id }}{% endblock %}
+
+{% block dash_content %}
+  <p><a href="{{ url_for('web-dashboard') }}">&larr; Back to dashboard</a></p>
+
+  <section class="encounter-card">
+    <h3>Vitals</h3>
+    {% if vitals %}
+      <ul>
+        {% for v in vitals %}
+          <li>HR {{ v.heart_rate or "—" }}, BP {{ v.systolic_bp or "—" }},
+            Temp {{ v.temp_c or "—" }}, SpO2 {{ v.spo2 or "—" }}
+            {% if v.flags %}<span class="flag">⚠ {{ v.flags }}</span>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="dash-note">No vitals recorded yet.</p>
+    {% endif %}
+
+    <h3>Diagnoses</h3>
+    <div id="diagnoses">
+      {% include "encounters/partials/diagnoses.html" %}
+    </div>
+
+    <h3>Add a diagnosis</h3>
+    <form
+      hx-post="{{ url_for('web-add-diagnosis', encounter_id=encounter.id) }}"
+      hx-target="#diagnoses"
+      hx-swap="innerHTML"
+    >
+      <input type="text" name="icd_code" placeholder="ICD code (e.g. J06.9)" required />
+      <input type="text" name="description" placeholder="Description" required />
+      <button type="submit">Add diagnosis</button>
+    </form>
+
+    <h3>Prescriptions</h3>
+    <div id="prescriptions">
+      {% include "prescriptions/partials/list.html" %}
+    </div>
+
+    <h4>Prescribe a medication</h4>
+    <form
+      hx-post="{{ url_for('web-prescribe', encounter_id=encounter.id) }}"
+      hx-target="#prescriptions"
+      hx-swap="innerHTML"
+    >
+      <select name="medication_id" required>
+        {% for med in medications %}
+          <option value="{{ med.id }}">
+            {{ med.name }}{% if med.is_controlled %} (controlled){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+      <input type="text" name="dose" placeholder="Dose (e.g. 500mg)" required />
+      <input type="number" name="refills" value="0" min="0" max="12" />
+      <label class="inline-check">
+        <input type="checkbox" name="override_interaction" value="true" />
+        Override interaction warning
+      </label>
+      <button type="submit">Prescribe</button>
+    </form>
+  </section>
+{% endblock %}

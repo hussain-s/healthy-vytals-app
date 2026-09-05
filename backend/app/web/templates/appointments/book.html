@@ -1,0 +1,37 @@
+{% extends "dashboard/_base.html" %}
+
+{% block title %}Book an appointment — HealthyVytals{% endblock %}
+{% block dash_title %}Book an appointment{% endblock %}
+
+{% block dash_content %}
+  <p><a href="{{ url_for('web-dashboard') }}">&larr; Back to dashboard</a></p>
+
+  {# HTMX target: booking results are swapped in here without a page reload. #}
+  <div id="book-result" aria-live="polite"></div>
+
+  {% if not doctors %}
+    <p class="dash-note">No open slots are available right now. Please check back later.</p>
+  {% else %}
+    {% for entry in doctors %}
+      <section class="doctor-slots">
+        <h2>{{ entry.doctor.email }}</h2>
+        <ul class="slot-list">
+          {% for slot in entry.slots %}
+            <li>
+              <form
+                hx-post="{{ url_for('web-book-submit') }}"
+                hx-target="#book-result"
+                hx-swap="innerHTML"
+              >
+                <input type="hidden" name="slot_id" value="{{ slot.id }}" />
+                <span class="slot-time">{{ slot.start_at }} → {{ slot.end_at }}</span>
+                <input type="text" name="reason" placeholder="Reason (optional)" />
+                <button type="submit">Book</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endfor %}
+  {% endif %}
+{% endblock %}

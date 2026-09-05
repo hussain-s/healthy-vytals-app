@@ -1,0 +1,54 @@
+# HealthyVytals — backend tooling configuration.
+#
+# This file configures the developer toolchain (test runner, linter, formatter,
+# type checker). Runtime dependencies live in requirements.txt; this is about
+# HOW we build and check the code, not what the app ships with.
+
+[project]
+name = "healthyvytals"
+version = "0.1.0"
+description = "Local-first medical portal — knowledge-base-rich reference application."
+requires-python = ">=3.11"
+
+# ---------------------------------------------------------------------------
+# pytest — test discovery and defaults
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+# Tests live under backend/tests and mirror the app/ package layout.
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+# -ra: show a short summary of all non-passing outcomes; --strict-markers: a
+# typo'd @pytest.mark is an error, not a silent no-op.
+addopts = "-ra --strict-markers"
+
+# ---------------------------------------------------------------------------
+# Ruff — linter + import sorting + formatter (fast, single tool)
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflakes, I import-sorting, B bugbear, UP pyupgrade,
+# C4 comprehensions, SIM simplify. A pragmatic, widely-used default set.
+select = ["E", "W", "F", "I", "B", "UP", "C4", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests may use assert freely and re-import fixtures.
+"tests/**" = ["B011"]
+
+# ---------------------------------------------------------------------------
+# mypy — static type checking
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+packages = ["app"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+# Pragmatic strictness: require typed defs in our own code without demanding
+# stubs for every third-party import that lacks them.
+disallow_untyped_defs = true
+ignore_missing_imports = true

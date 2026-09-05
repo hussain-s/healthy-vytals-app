@@ -1,0 +1,19 @@
+{#
+  HTMX-swappable prescriptions list, re-rendered after a prescribe attempt.
+  Shows a §5.4 safety-block error inline when present.
+#}
+{% if error %}
+  <p class="form-error" role="alert">{{ error }}</p>
+{% endif %}
+{% if prescriptions %}
+  <ul class="rx-list">
+    {% for rx in prescriptions %}
+      <li>
+        <strong>{{ medications_by_id.get(rx.medication_id, rx.medication_id) }}</strong>
+        — {{ rx.dose }} · refills {{ rx.refills }} · {{ rx.status }}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="dash-note">No prescriptions yet.</p>
+{% endif %}

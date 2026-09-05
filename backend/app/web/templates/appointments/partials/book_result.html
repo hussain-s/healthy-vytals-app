@@ -1,0 +1,13 @@
+{#
+  HTMX-swappable result of a booking attempt. Rendered into #book-result on the
+  booking page. Shows either a confirmation or an inline error (e.g. the slot was
+  taken between page load and submit).
+#}
+{% if error %}
+  <p class="form-error" role="alert">{{ error }}</p>
+{% else %}
+  <p class="status-ok">
+    Booked! Appointment #{{ appointment.id }} is <strong>{{ appointment.status.value }}</strong>.
+    <a href="{{ url_for('web-my-appointments') }}">View my appointments</a>.
+  </p>
+{% endif %}

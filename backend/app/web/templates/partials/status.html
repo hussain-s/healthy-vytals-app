@@ -1,0 +1,8 @@
+{#
+  HTMX-swappable fragment: rendered by the /_status endpoint and swapped into the
+  landing page's #status slot. Fragments render no <html>/<body> — only the
+  markup that replaces the target.
+#}
+<p class="status-ok">
+  System status: <strong>{{ status }}</strong> · database: <strong>{{ database }}</strong>
+</p>

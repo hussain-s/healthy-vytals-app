@@ -1,0 +1,44 @@
+{% extends "dashboard/_base.html" %}
+
+{% block title %}My medical history — HealthyVytals{% endblock %}
+{% block dash_title %}My medical history{% endblock %}
+
+{% block dash_content %}
+  <p><a href="{{ url_for('web-dashboard') }}">&larr; Back to dashboard</a></p>
+
+  {% if not rows %}
+    <p class="dash-note">No encounters recorded yet.</p>
+  {% else %}
+    {% for row in rows %}
+      <section class="encounter-card">
+        <h2>Encounter #{{ row.encounter.id }}
+          <small>opened {{ row.encounter.opened_at }}</small>
+        </h2>
+        <h3>Vitals</h3>
+        {% if row.vitals %}
+          <ul>
+            {% for v in row.vitals %}
+              <li>
+                HR {{ v.heart_rate or "—" }}, BP {{ v.systolic_bp or "—" }},
+                Temp {{ v.temp_c or "—" }}, SpO2 {{ v.spo2 or "—" }}
+                {% if v.flags %}<span class="flag">⚠ {{ v.flags }}</span>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="dash-note">No vitals recorded.</p>
+        {% endif %}
+        <h3>Diagnoses</h3>
+        {% if row.diagnoses %}
+          <ul>
+            {% for d in row.diagnoses %}
+              <li><strong>{{ d.icd_code }}</strong> — {{ d.description }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="dash-note">No diagnoses recorded.</p>
+        {% endif %}
+      </section>
+    {% endfor %}
+  {% endif %}
+{% endblock %}

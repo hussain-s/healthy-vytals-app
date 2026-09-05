@@ -1,0 +1,9 @@
+{% extends "dashboard/_base.html" %}
+
+{% block title %}My prescriptions — HealthyVytals{% endblock %}
+{% block dash_title %}My prescriptions{% endblock %}
+
+{% block dash_content %}
+  <p><a href="{{ url_for('web-dashboard') }}">&larr; Back to dashboard</a></p>
+  {% include "prescriptions/partials/list.html" %}
+{% endblock %}

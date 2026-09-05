@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Register — HealthyVytals{% endblock %}
+
+{% block content %}
+  <section class="form-card">
+    <h1>Create a patient account</h1>
+    {% if error %}
+      <p class="form-error" role="alert">{{ error }}</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('web-register-submit') }}">
+      <label>
+        Email
+        <input type="email" name="email" value="{{ email or '' }}" required autofocus />
+      </label>
+      <label>
+        Password <small>(at least 8 characters)</small>
+        <input type="password" name="password" required minlength="8" />
+      </label>
+      <button type="submit">Create account</button>
+    </form>
+    <p class="form-alt">
+      Already have an account? <a href="{{ url_for('web-login') }}">Log in</a>.
+    </p>
+    <p class="form-note">
+      Staff accounts (doctor, nurse, admin) are created by an administrator.
+    </p>
+  </section>
+{% endblock %}

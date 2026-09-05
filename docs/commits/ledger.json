@@ -1,0 +1,1142 @@
+{
+  "project": "HealthyVytals",
+  "generator": "AI-assisted incremental build (DESIGN.md 9A.6)",
+  "repo_root": "healthyvytals/",
+  "ledger_version": 1,
+  "commits": [
+    {
+      "seq": 1,
+      "id": "c001",
+      "message": {
+        "subject": "chore(repo): scaffold project root, env template, and toolchain",
+        "body": "Establishes the monolith's root scaffolding as the first committed slice.\n\n- .gitignore: ignore venvs, the runtime SQLite file, tool caches, and the real\n  .env, while keeping .env.example tracked.\n- .env.example: documents every environment variable with safe placeholder\n  defaults (SQLite by default per decision 12.2; JWT + domain tunables per 5.2).\n- backend/requirements.txt: pinned runtime + test dependencies (FastAPI,\n  SQLAlchemy, Alembic, Jinja2, python-jose, passlib, pytest). No Node (12.1).\n- backend/pyproject.toml: pytest, ruff (lint+format+imports), and mypy config.\n\nImplements TASKS 0.1, 0.2, 0.17.\nRefs: DESIGN 7.5 (folder contract), 8 (local run), 12.1, 12.2, 12.5."
+      },
+      "files": [
+        ".gitignore",
+        ".env.example",
+        "backend/requirements.txt",
+        "backend/pyproject.toml"
+      ],
+      "task_ids": ["0.1", "0.2", "0.17"],
+      "rule_refs": ["§7.5", "§8", "§12.1", "§12.2", "§12.5"],
+      "phase": 0,
+      "rationale": "Root scaffolding + pinned deps + tool config — the base every later slice builds on.",
+      "depends_on": []
+    },
+    {
+      "seq": 2,
+      "id": "c002",
+      "message": {
+        "subject": "feat(core): add env-driven application settings",
+        "body": "Introduces app.core.config.Settings — the single source of truth for\nruntime configuration, loaded from HV_-prefixed environment variables / .env\nwith safe local defaults so a fresh clone runs with no .env.\n\n- SQLite is the default database (decision 12.2); Postgres is opt-in purely via\n  HV_DATABASE_URL with no code changes.\n- Domain tunables (appointment buffer, cancellation cutoff) are centralized here\n  so the 5.2 rules read thresholds from config, not magic numbers.\n- Production safety: refuses to boot when HV_ENV=production still uses the\n  insecure placeholder JWT secret, preventing forgeable sessions.\n- get_settings() caches the Settings singleton (parsed once per process).\n- Adds app/ and app/core/ package docstrings (partial TASKS 0.11).\n\nTests: defaults, HV_ overrides + type coercion, and the production secret guard\n(4 tests, all green).\n\nImplements TASKS 0.3 (and part of 0.11).\nRefs: DESIGN 7.2, 8, 5.2, 12.2."
+      },
+      "files": [
+        "backend/app/__init__.py",
+        "backend/app/core/__init__.py",
+        "backend/app/core/config.py",
+        "backend/tests/__init__.py",
+        "backend/tests/core/__init__.py",
+        "backend/tests/core/test_config.py"
+      ],
+      "task_ids": ["0.3", "0.11"],
+      "rule_refs": ["§7.2", "§8", "§5.2", "§12.2"],
+      "phase": 0,
+      "rationale": "Central env-driven config with SQLite default + production secret guard; every layer reads settings from here.",
+      "depends_on": [1]
+    },
+    {
+      "seq": 3,
+      "id": "c003",
+      "message": {
+        "subject": "feat(core): define roles and coarse RBAC groupings",
+        "body": "Adds app.core.roles: the authoritative Role enum (patient/nurse/doctor/\nadmin) plus immutable frozenset groupings used by coarse route guards.\n\nThe groupings encode non-obvious design decisions and are documented with their\nrationale (the knowledge-base ethos):\n- CLINICAL_AUTHORS = {doctor} only — nurses record vitals but do not author\n  diagnoses/prescriptions; admin never authors clinical data (least-privilege).\n- AUDIT_READERS = {admin} only — separation of duties for the PHI audit log.\n- CLINICAL_STAFF / STAFF for the common 'clinician' vs 'internal staff' splits.\n\nRole subclasses str so it serializes as a plain value across JSON, JWTs, and the\nDB. Module is dependency-free (stdlib only) so any layer can import it without\ncycles. Fine-grained ownership/treating-relationship checks (5.3) deliberately\nlive in the service layer, not here.\n\nTests pin each grouping's membership so widening a set fails loudly (6 tests).\n\nImplements TASKS 0.4.\nRefs: DESIGN 6, 2, 5.3, 5.7."
+      },
+      "files": [
+        "backend/app/core/roles.py",
+        "backend/tests/core/test_roles.py"
+      ],
+      "task_ids": ["0.4"],
+      "rule_refs": ["§6", "§2", "§5.3", "§5.7"],
+      "phase": 0,
+      "rationale": "Authoritative roles + RBAC groupings underpinning every guard in Phase 1.",
+      "depends_on": [2]
+    },
+    {
+      "seq": 4,
+      "id": "c004",
+      "message": {
+        "subject": "feat(core): add password hashing and JWT security primitives",
+        "body": "Adds app.core.security: the low-level auth crypto boundary, framework- and\nDB-agnostic.\n\n- hash_password/verify_password: bcrypt via passlib; salt+cost embedded in the\n  hash. verify is constant-time and returns False (never raises) on a malformed\n  stored hash.\n- create_access_token/create_refresh_token/decode_token: JWTs with sub/type/iat/\n  exp. decode_token enforces signature, expiry, AND the expected token 'type',\n  so an access token can't be replayed as a refresh token or vice versa\n  (story A4). Reserved claims can't be overridden by extra_claims.\n- TokenError is intentionally coarse (no reason leak); errors.py will map it 401.\n\nAlso pins bcrypt~=4.0.1 in requirements.txt: passlib 1.7.4 reads\nbcrypt.__about__.__version__, which bcrypt 4.1 removed; the 4.0.x line is what\npasslib supports. (requirements.txt legitimately reappears from c001 per the\nledger's append-only, files-may-recur rule.)\n\nTests (10): hashing salt/verify/malformed, access+refresh round-trip, both\ntype-mismatch rejections, tampered-key rejection, backdated-expiry rejection,\nreserved-claim guard. Full suite: 20 passed.\n\nImplements TASKS 0.5.\nRefs: DESIGN 3 (A3, A4), 7.2."
+      },
+      "files": [
+        "backend/app/core/security.py",
+        "backend/tests/core/test_security.py",
+        "backend/requirements.txt"
+      ],
+      "task_ids": ["0.5"],
+      "rule_refs": ["§3", "§7.2"],
+      "phase": 0,
+      "rationale": "Password hashing + typed JWTs (access/refresh) — the crypto boundary auth flows build on.",
+      "depends_on": [2]
+    },
+    {
+      "seq": 5,
+      "id": "c005",
+      "message": {
+        "subject": "feat(db): add declarative base, mixins, and session/unit-of-work",
+        "body": "Establishes the persistence foundation every model and repository builds on.\n\n- app/models/base.py: DeclarativeBase (Base) + IdMixin (surrogate int PK) +\n  TimestampMixin (tz-aware created_at/updated_at maintained by the DB via\n  server_default/onupdate). One Base.metadata for Alembic to autogenerate from.\n- app/db/session.py: cached engine built from HV_DATABASE_URL (SQLite gets\n  check_same_thread=False for Uvicorn's threadpool; pool_pre_ping on), a\n  sessionmaker with expire_on_commit=False, a unit_of_work() context manager\n  (commit on success / rollback on error / always close), and a get_session()\n  FastAPI dependency with the same semantics. Confining engine+session here keeps\n  the backend swappable (SQLite<->Postgres) from one place (rule 7.6.2).\n- Package docstrings for models/ and db/.\n\nImmutability note: clinical append-only records (5.6) keep updated_at for\nforensics; the append-only rule is enforced in the service layer, not by omitting\ncolumns here.\n\nTests (5) against a real temp SQLite DB: mixins populate id+timestamps;\nunit_of_work commits on success and rolls back on error; get_session commits on\nsuccess and rolls back when the consumer raises. Full suite: 25 passed.\n\nImplements TASKS 0.6 (and part of 0.11).\nRefs: DESIGN 7.2, 7.6, 8, 5.6, 12.2."
+      },
+      "files": [
+        "backend/app/models/__init__.py",
+        "backend/app/models/base.py",
+        "backend/app/db/__init__.py",
+        "backend/app/db/session.py",
+        "backend/tests/db/__init__.py",
+        "backend/tests/db/test_session.py"
+      ],
+      "task_ids": ["0.6", "0.11"],
+      "rule_refs": ["§7.2", "§7.6", "§8", "§5.6", "§12.2"],
+      "phase": 0,
+      "rationale": "Declarative Base + mixins + transactional session — the persistence foundation for all models/repositories.",
+      "depends_on": [2]
+    },
+    {
+      "seq": 6,
+      "id": "c006",
+      "message": {
+        "subject": "feat(api): add app factory, health probe, and versioned router",
+        "body": "Makes the backend a runnable ASGI app served by Uvicorn on :8000.\n\n- app/main.py: create_app() factory building the FastAPI instance, mounting the\n  API under /api and disabling /docs+/redoc in production. Exposes a module-level\n  `app` for `uvicorn app.main:app`.\n- app/api/router.py: top-level aggregator with a /v1 sub-router, so every route\n  lives under /api/v1 and a future v2 slots in without touching v1 (rule 7.6.5).\n- app/api/v1/health.py: GET /api/v1/health liveness/readiness probe that also\n  runs a SELECT 1 DB check; a DB failure degrades the `database` field rather\n  than 500ing, so callers can tell 'app down' from 'DB unreachable'.\n- Package docstrings for api/ and api/v1/.\n\nOrdering note: this slice (0.8) is taken before Alembic (0.7) on purpose — it\ngives a runnable app to verify end-to-end now, and Alembic autogenerate is most\nuseful once the first real models exist (Phase 1).\n\nTests (4): versioned mount, health payload shape + DB=ok, no unversioned /health\n(404), and /docs+/openapi.json served in development. Also verified `app` imports\nvia the Uvicorn path. Full suite: 29 passed.\n\nImplements TASKS 0.8 (and part of 0.11).\nRefs: DESIGN 7.1, 7.6, 8."
+      },
+      "files": [
+        "backend/app/api/__init__.py",
+        "backend/app/api/v1/__init__.py",
+        "backend/app/api/v1/health.py",
+        "backend/app/api/router.py",
+        "backend/app/main.py",
+        "backend/tests/api/__init__.py",
+        "backend/tests/api/test_health.py"
+      ],
+      "task_ids": ["0.8", "0.11"],
+      "rule_refs": ["§7.1", "§7.6", "§8"],
+      "phase": 0,
+      "rationale": "Runnable FastAPI app with a versioned router and a DB-aware health probe.",
+      "depends_on": [5]
+    },
+    {
+      "seq": 7,
+      "id": "c007",
+      "message": {
+        "subject": "feat(api): standardize response envelopes and typed errors",
+        "body": "Adds the shared API contract primitives so every endpoint looks consistent.\n\n- app/schemas/common.py: ORMModel (from_attributes base for response schemas so\n  routers map ORM->schema deliberately, never dumping rows), Page[T] generic\n  pagination envelope (items/total/limit/offset with bounds), and ErrorResponse\n  (stable machine-readable code + client-safe message + optional details).\n- app/core/errors.py: AppError base + semantic subclasses (NotFound 404,\n  ValidationError 422, AuthenticationError 401, PermissionDenied 403,\n  Conflict 409). The domain/service layers raise these framework-agnostic\n  errors; register_exception_handlers() renders each to its status + the\n  ErrorResponse envelope, and maps FastAPI RequestValidationError to the same\n  shape. Handlers never leak stack traces (rule 7.6.6).\n- Wired register_exception_handlers into create_app().\n- Package docstring for schemas/.\n\nTests (9): Page metadata + bounds validation, ErrorResponse defaults, ORMModel\nhides undeclared fields (no PHI leak), and end-to-end handler mapping for\n404/403/409(subclass code override)/400 plus request-validation 422. Full\nsuite: 38 passed.\n\nImplements TASKS 0.9 (and part of 0.11).\nRefs: DESIGN 7.6 (rules 4,5,6)."
+      },
+      "files": [
+        "backend/app/schemas/__init__.py",
+        "backend/app/schemas/common.py",
+        "backend/app/core/errors.py",
+        "backend/app/main.py",
+        "backend/tests/schemas/__init__.py",
+        "backend/tests/schemas/test_common.py",
+        "backend/tests/core/test_errors.py"
+      ],
+      "task_ids": ["0.9", "0.11"],
+      "rule_refs": ["§7.6"],
+      "phase": 0,
+      "rationale": "Standard Page[T]/ErrorResponse envelopes + typed domain errors mapped to stable HTTP codes.",
+      "depends_on": [6]
+    },
+    {
+      "seq": 8,
+      "id": "c008",
+      "message": {
+        "subject": "feat(repositories): add generic repository base (DAL foundation)",
+        "body": "Adds app.repositories.base.Repository[ModelT] — the generic CRUD foundation\nfor the data-access layer, the only layer permitted to query the DB (rule 7.6.2).\n\n- get/list(limit,offset, ordered by id)/count/add/delete against a caller-\n  supplied Session. The session is injected, never created here, so one\n  transaction (the unit of work) can span multiple repositories in a use case.\n- add() flushes (not commits) to populate server-generated fields (PK,\n  timestamps) immediately while leaving commit/rollback to the unit of work.\n- delete() documents that append-only clinical records (5.6) must not be\n  deleted; that rule is enforced in the service layer, while delete() remains\n  available for entities where removal is legitimate (e.g. an unbooked slot).\n- Generic over the model so concrete repositories get typed returns and add\n  entity-specific queries (docstring shows the get_by_email pattern).\n- Package docstring for repositories/.\n\nTests (6) against in-memory SQLite: add flush-populates id+timestamps, get\nhit/miss, paginated ordered list, count, delete, and a subclass query method.\nFull suite: 44 passed.\n\nImplements TASKS 0.10 (and part of 0.11).\nRefs: DESIGN 7.6 (rule 2), 5.6."
+      },
+      "files": [
+        "backend/app/repositories/__init__.py",
+        "backend/app/repositories/base.py",
+        "backend/tests/repositories/__init__.py",
+        "backend/tests/repositories/test_base.py"
+      ],
+      "task_ids": ["0.10", "0.11"],
+      "rule_refs": ["§7.6", "§5.6"],
+      "phase": 0,
+      "rationale": "Generic Repository[Model] CRUD base confining all DB queries to the DAL.",
+      "depends_on": [5]
+    },
+    {
+      "seq": 9,
+      "id": "c009",
+      "message": {
+        "subject": "feat(web): bootstrap Jinja2 + HTMX UI with landing page",
+        "body": "Stands up the server-rendered presentation layer (decision 12.1) — one\nprocess, no Node, no build step.\n\n- app/web/templates.py: single configured Jinja2Templates instance (autoescape\n  on for XSS defense; template dir resolved from __file__).\n- app/web/router.py: thin HTML routes — GET / (landing) and GET /_status (an\n  HTMX partial). No business logic / no DB access (rule 7.6.7). Routes are named\n  (web-landing, web-status) and excluded from OpenAPI.\n- templates/base.html: layout loading vendored htmx.min.js + app.css via\n  url_for('web-static', ...); landing.html: hero + an hx-get button that swaps\n  the status partial into #status; partials/status.html: bare fragment.\n- static/app.css: small dependency-free stylesheet; static/htmx.min.js: HTMX\n  2.0.3 vendored (no CDN).\n- main.py: mount /static as 'web-static' and include the web router.\n\nProves the stack end to end: booted Uvicorn and confirmed GET / (200), the HTMX\npartial swap, htmx.min.js + app.css served, /api/v1/health, and /docs all work in\na single process on one port.\n\nTests (6, tests/web/): landing renders shell with HTMX+CSS, hx-get button wired\nto /_status, status partial is a bare fragment, CSS + HTMX assets served, and web\nroutes hidden from OpenAPI. Full suite: 50 passed.\n\nImplements TASKS 0.12, 0.13 (and part of 0.11).\nRefs: DESIGN 7.3, 7.6 (rule 7), 8, 12.1."
+      },
+      "files": [
+        "backend/app/web/__init__.py",
+        "backend/app/web/templates.py",
+        "backend/app/web/router.py",
+        "backend/app/web/templates/base.html",
+        "backend/app/web/templates/landing.html",
+        "backend/app/web/templates/partials/status.html",
+        "backend/app/web/static/app.css",
+        "backend/app/web/static/htmx.min.js",
+        "backend/app/main.py",
+        "backend/tests/web/__init__.py",
+        "backend/tests/web/test_landing.py"
+      ],
+      "task_ids": ["0.12", "0.13", "0.11"],
+      "rule_refs": ["§7.3", "§7.6", "§8", "§12.1"],
+      "phase": 0,
+      "rationale": "Server-rendered Jinja2+HTMX bootstrap proving the buildless single-process UI stack.",
+      "depends_on": [6]
+    },
+    {
+      "seq": 10,
+      "id": "c010",
+      "message": {
+        "subject": "feat(db): initialize Alembic with one-command migrate wrappers",
+        "body": "Sets up schema migrations (decision 12.5) wired to the app as the single\nsource of truth.\n\n- backend/alembic.ini: script config; DB URL deliberately NOT set here (env.py\n  reads HV_DATABASE_URL), UTC timestamped filename template, WARNING logging.\n- backend/alembic/env.py: reads the URL from app Settings and targets\n  Base.metadata, with compare_type + compare_server_default and SQLite batch\n  mode for safe ALTERs. _import_all_models() hook is in place (empty today) so\n  autogenerate 'just works' once Phase 1 adds the first models.\n- backend/alembic/script.py.mako: revision template (modern typing).\n- backend/alembic/versions/.gitkeep: keeps the empty versions dir tracked; the\n  first real migration is generated in Phase 1.\n- scripts/migrate.sh + scripts/migrate.ps1: one-command `alembic upgrade head`\n  wrappers (resolve repo root, use the venv, run from backend/) so beginners\n  never type raw Alembic.\n\nVerified against a temp SQLite DB: `alembic upgrade head` is a clean no-op with\nno revisions, and `revision --autogenerate` produces a valid script (discarded\nafter the smoke test), proving env.py + template + settings-driven URL are wired.\nFull suite: 50 passed.\n\nImplements TASKS 0.7.\nRefs: DESIGN 8, 12.5."
+      },
+      "files": [
+        "backend/alembic.ini",
+        "backend/alembic/env.py",
+        "backend/alembic/script.py.mako",
+        "backend/alembic/versions/.gitkeep",
+        "scripts/migrate.sh",
+        "scripts/migrate.ps1"
+      ],
+      "task_ids": ["0.7"],
+      "rule_refs": ["§8", "§12.5"],
+      "phase": 0,
+      "rationale": "Alembic wired to app settings + Base.metadata, behind one-command migrate wrappers.",
+      "depends_on": [5]
+    },
+    {
+      "seq": 11,
+      "id": "c011",
+      "message": {
+        "subject": "feat(scripts): add setup/dev/seed/reset-db, Makefile, and README",
+        "body": "Completes the no-Docker local-run workflow and closes the Phase 0 exit gate:\none command per OS boots the whole app (web UI + JSON API) on :8000.\n\n- scripts/setup.{sh,ps1}: check Python 3.11+, create the venv (idempotent),\n  install deps, migrate, then seed.\n- scripts/dev.{sh,ps1}: run the single Uvicorn process with autoreload; PORT is\n  overridable.\n- scripts/seed.{sh,ps1}: run app.db.seed (idempotent).\n- scripts/reset-db.{sh,ps1}: drop the SQLite file, re-migrate, re-seed; refuses\n  to run against a non-SQLite DATABASE_URL (asks app Settings for the path so\n  it honors .env / HV_DATABASE_URL).\n- app/db/seed.py: idempotent seed entrypoint (documented no-op until Phase 1).\n- Makefile: macOS/Linux shortcuts mirroring the scripts (make setup/dev/...).\n- README.md: Python-only prereqs, one-command-per-OS quick start, task table,\n  configuration, project layout, and troubleshooting.\n\nExit-gate verification (macOS/Linux): ran migrate.sh, seed.sh, reset-db.sh\nsuccessfully, then booted dev.sh and confirmed GET / (200), /api/v1/health\n(status+database ok), and /docs (200) from one process. Full suite: 50 passed.\n\nImplements TASKS 0.14, 0.15, 0.16, 0.18 and the Phase 0 exit gate.\nRefs: DESIGN 8, 9 (Phase 0)."
+      },
+      "files": [
+        "backend/app/db/seed.py",
+        "scripts/setup.sh",
+        "scripts/dev.sh",
+        "scripts/seed.sh",
+        "scripts/reset-db.sh",
+        "scripts/setup.ps1",
+        "scripts/dev.ps1",
+        "scripts/seed.ps1",
+        "scripts/reset-db.ps1",
+        "Makefile",
+        "README.md"
+      ],
+      "task_ids": ["0.14", "0.15", "0.16", "0.18"],
+      "rule_refs": ["§8", "§9"],
+      "phase": 0,
+      "rationale": "One-command-per-OS setup/dev/seed/reset workflow + README; closes the Phase 0 exit gate.",
+      "depends_on": [9, 10]
+    },
+    {
+      "seq": 12,
+      "id": "c012",
+      "message": {
+        "subject": "feat(models): add User account model and first migration",
+        "body": "Introduces the base identity every person in the system has (stories A1-A3).\n\n- app/models/user.py: User(email unique+indexed, password_hash bcrypt-only,\n  role, is_active). Role persists by VALUE (patient/nurse/doctor/admin) via a\n  non-native Enum so stored data matches JWT/JSON and stays readable in SQL;\n  role is indexed for guard/lookup queries. is_active supports soft-deactivation\n  (story E1) so audit/history references stay valid instead of hard deletes.\n  Role-specific attributes live on separate 1:1 profiles (next slice), keeping\n  the account concern clean.\n- alembic/env.py: import app.models.user in _import_all_models() so autogenerate\n  sees the table.\n- alembic/versions/20260808_2232_87b91540ffa3_create_users_table.py: first real\n  migration. Autogenerated, then REVIEWED per DESIGN 8 (not blindly committed);\n  verified it upgrades to the expected schema (unique ix_users_email,\n  ix_users_role, all columns/types) and downgrades cleanly on SQLite (batch mode).\n\nTests (3): persist + role/defaults, role round-trips as its string value, email\nuniqueness enforced. Full suite: 53 passed.\n\nImplements TASKS 1.1.\nRefs: DESIGN 4.1, 3 (A1-A3, E1), 8."
+      },
+      "files": [
+        "backend/app/models/user.py",
+        "backend/alembic/env.py",
+        "backend/alembic/versions/20260808_2232_87b91540ffa3_create_users_table.py",
+        "backend/tests/models/__init__.py",
+        "backend/tests/models/test_user.py"
+      ],
+      "task_ids": ["1.1"],
+      "rule_refs": ["§4.1", "§3", "§8"],
+      "phase": 1,
+      "rationale": "Base User account (email/hash/role/is_active) + first reviewed Alembic migration.",
+      "depends_on": [3, 5, 10]
+    },
+    {
+      "seq": 13,
+      "id": "c013",
+      "message": {
+        "subject": "feat(models): add 1:1 role profiles (patient/doctor/nurse)",
+        "body": "Adds the role-specific profile tables, each joined 1:1 to users (DESIGN 4.1).\n\n- app/models/profile.py: PatientProfile (dob/sex/phone/insurance/emergency\n  contact), DoctorProfile (specialty + unique license_no), NurseProfile (ward).\n  Each uses user_id as BOTH primary key and FK to users.id (shared-PK 1:1,\n  guaranteeing at most one profile per user) with ondelete=CASCADE, and a\n  relationship() back to the owning User.\n- Rationale for 1:1 profiles over wide User columns: keeps users focused on\n  identity/auth, lets each role's attributes evolve independently, and gives\n  clinical FKs a precise target (e.g. slots reference a doctor).\n- alembic/env.py: also import profile in _import_all_models().\n- migration dffddd069d87 (down_revision 87b91540ffa3): creates the three tables.\n  Autogenerated, REVIEWED per DESIGN 8; verified the full chain upgrades to head\n  producing users + 3 profile tables.\n\nTests (5): each profile links + loads its user, professional/ward fields persist,\nshared-PK enforces one-to-one, and duplicate doctor license_no is rejected. Full\nsuite: 58 passed.\n\nImplements TASKS 1.2.\nRefs: DESIGN 4.1, 8."
+      },
+      "files": [
+        "backend/app/models/profile.py",
+        "backend/alembic/env.py",
+        "backend/alembic/versions/20260808_2234_dffddd069d87_create_role_profile_tables.py",
+        "backend/tests/models/test_profile.py"
+      ],
+      "task_ids": ["1.2"],
+      "rule_refs": ["§4.1", "§8"],
+      "phase": 1,
+      "rationale": "1:1 patient/doctor/nurse profiles (shared-PK) extending User with role-specific attributes.",
+      "depends_on": [12]
+    },
+    {
+      "seq": 14,
+      "id": "c014",
+      "message": {
+        "subject": "feat(schemas): add auth and user API schemas",
+        "body": "Defines the API boundary shapes for accounts + auth (stories A1-A4).\n\n- app/schemas/auth.py: RegisterRequest (EmailStr + min-8 password; no role field\n  since only patients self-register, A1), LoginRequest, TokenPair (bearer\n  convention for access+refresh, A3/A4), RefreshRequest. MIN_PASSWORD_LENGTH is\n  a named constant so the policy is declared once at the boundary.\n- app/schemas/user.py: UserOut (id/email/role/is_active) mapped from ORM via\n  ORMModel — deliberately NO password_hash field, so the credential hash can't\n  serialize to a client even if a router passes the ORM object (rule 7.6.4);\n  UserCreate for admin staff provisioning (explicit role, A2).\n- requirements.txt: pydantic[email] to enable EmailStr validation.\n\nTests (6): valid register, short-password + bad-email rejection, empty-password\nrejection, TokenPair bearer default, and UserOut dropping password_hash. Full\nsuite: 64 passed.\n\nImplements TASKS 1.3.\nRefs: DESIGN 3 (A1-A4), 7.6 (rule 4)."
+      },
+      "files": [
+        "backend/app/schemas/auth.py",
+        "backend/app/schemas/user.py",
+        "backend/requirements.txt",
+        "backend/tests/schemas/test_auth.py"
+      ],
+      "task_ids": ["1.3"],
+      "rule_refs": ["§3", "§7.6"],
+      "phase": 1,
+      "rationale": "Auth/user Pydantic schemas; UserOut enforces the no-PHI/no-hash serialization boundary.",
+      "depends_on": [7, 12]
+    },
+    {
+      "seq": 15,
+      "id": "c015",
+      "message": {
+        "subject": "feat(repositories): add UserRepository with email lookups",
+        "body": "Adds app.repositories.user_repository.UserRepository, extending the generic\nRepository with the user-specific queries auth needs: get_by_email (indexed\nsingle-row login lookup) and email_exists (fail-fast duplicate check for\nregistration/provisioning). Keeps all query construction in the DAL (rule 7.6.2)\nso services call methods rather than building queries.\n\nGroundwork for the register/login slices (TASKS 1.4/1.6); those rows are only\nmarked done once the services/endpoints land. No TASKS row fully satisfied here.\n\nTests (3): get_by_email hit/miss, email_exists before/after insert, and that\ninherited generic CRUD (get/count) still works. Full suite: 67 passed.\n\nRefs: DESIGN 7.6 (rule 2), 3 (A1, A3)."
+      },
+      "files": [
+        "backend/app/repositories/user_repository.py",
+        "backend/tests/repositories/test_user_repository.py"
+      ],
+      "task_ids": [],
+      "rule_refs": ["§7.6", "§3"],
+      "phase": 1,
+      "rationale": "User DAL (get_by_email, email_exists) that the register/login services depend on.",
+      "depends_on": [8, 12]
+    },
+    {
+      "seq": 16,
+      "id": "c016",
+      "message": {
+        "subject": "feat(audit): add AuditLog model and audit service (§5.7)",
+        "body": "Adds the mandatory PHI-access audit trail backbone, brought forward before the\nauth service so login/register write audit rows from day one.\n\n- app/models/audit.py: AuditLog(actor_id?, action, resource_type?, resource_id?,\n  patient_id?). actor_id nullable so FAILED LOGINS (no authenticated user) are\n  still auditable; patient_id nullable + indexed to enable 'filter by patient'\n  (story E2); FKs use ondelete=SET NULL so deleting a user never erases history;\n  indexes on actor_id/patient_id/created_at back the admin's audit queries.\n  Append-only by policy (service only inserts).\n- app/services/audit_service.py: record_audit(session, *, action, ...) appends\n  one row INSIDE the caller's unit of work (keyword-only args; resource_id\n  coerced to text). Flushes but never commits, so the audit write is atomic with\n  the audited action — no orphan/ missing audit rows.\n- alembic/env.py + migration 9c391aebfa9f (down_revision dffddd069d87): create\n  audit_logs + its three indexes. Autogenerated, REVIEWED per DESIGN 8.\n- Adds services/ package docstring.\n\nTests (5): model persists with actor+patient, actor_id nullable for failed\nlogin; service flushes (id available, resource_id text), does NOT commit\n(rollback leaves no row), and is atomic with the caller's commit. Full suite:\n72 passed.\n\nImplements TASKS 1.10, 1.11.\nRefs: DESIGN 5.7, 4.1, 3 (E2), 8."
+      },
+      "files": [
+        "backend/app/models/audit.py",
+        "backend/app/services/__init__.py",
+        "backend/app/services/audit_service.py",
+        "backend/alembic/env.py",
+        "backend/alembic/versions/20260808_2239_9c391aebfa9f_create_audit_logs_table.py",
+        "backend/tests/models/test_audit.py",
+        "backend/tests/services/__init__.py",
+        "backend/tests/services/test_audit_service.py"
+      ],
+      "task_ids": ["1.10", "1.11"],
+      "rule_refs": ["§5.7", "§4.1", "§3", "§8"],
+      "phase": 1,
+      "rationale": "Append-only AuditLog + transactional record_audit choke point for the mandatory audit trail.",
+      "depends_on": [12]
+    },
+    {
+      "seq": 17,
+      "id": "c017",
+      "message": {
+        "subject": "feat(auth): register patient endpoint with audited service",
+        "body": "First complete account vertical slice: self-service patient registration\n(story A1), plus the auth service that login/refresh will also use.\n\n- app/services/auth_service.py: register_patient() creates the User (PATIENT,\n  bcrypt-hashed pw) + its 1:1 PatientProfile and audits 'user.register', all in\n  the caller's unit of work (atomic). login() verifies credentials and issues an\n  access+refresh pair (role rides the access token), auditing 'auth.login' /\n  'auth.login_failed'. Security: uniform InvalidCredentials for unknown email,\n  wrong password, AND deactivated account, so the API never reveals which emails\n  exist. Typed errors EmailAlreadyRegistered(409)/InvalidCredentials(401).\n- app/api/v1/auth.py: POST /api/v1/auth/register -> 201 UserOut (no hash);\n  mounted on the v1 router.\n- tests/conftest.py: shared `client` fixture — per-test in-memory SQLite\n  (StaticPool) with schema created and get_session overridden (commit/rollback/\n  close contract preserved).\n\nThis slice implements register (1.4) and, since login lives in the same service,\nadds+tests login too; the login/refresh ENDPOINTS land in the next slice (1.6/\n1.7), so 1.6/1.7 stay open.\n\nTests: service (7) register happy/profile/audit/duplicate + login success-tokens\n/wrong-pw-audited/unknown-email-same-error/deactivated; API (3) 201+safe body,\n409 duplicate, 422 invalid. Full suite: 82 passed.\n\nImplements TASKS 1.4; completes wiring for 1.11.\nRefs: DESIGN 3 (A1, A3), 5.7, 7.6."
+      },
+      "files": [
+        "backend/app/services/auth_service.py",
+        "backend/app/api/v1/auth.py",
+        "backend/app/api/router.py",
+        "backend/tests/conftest.py",
+        "backend/tests/services/test_auth_service.py",
+        "backend/tests/api/test_auth.py"
+      ],
+      "task_ids": ["1.4", "1.11"],
+      "rule_refs": ["§3", "§5.7", "§7.6"],
+      "phase": 1,
+      "rationale": "Audited patient registration endpoint + the auth service (register/login) it builds on.",
+      "depends_on": [14, 15, 16]
+    },
+    {
+      "seq": 18,
+      "id": "c018",
+      "message": {
+        "subject": "feat(auth): login/refresh/me endpoints and auth dependencies",
+        "body": "Completes the core auth loop (stories A3, A4, A5).\n\n- app/core/deps.py: get_current_user resolves the caller from a JWT access\n  token via EITHER Authorization: Bearer (API/tests) OR the HttpOnly hv_access\n  cookie (browser), decoding to the same user so API and web share one auth\n  model; rejects missing/invalid tokens and deactivated accounts (401).\n  require_roles(*roles) is a dependency factory returning a 403 guard for coarse\n  RBAC (A5). Fine-grained ownership checks intentionally stay in services.\n- auth_service.refresh_tokens(): exchanges a valid REFRESH token for a new pair,\n  rejecting access-as-refresh and deactivated/unknown subjects, auditing\n  auth.refresh / auth.refresh_failed.\n- app/api/v1/auth.py: POST /login, POST /refresh, GET /me (get_current_user).\n\nTests: deps (7) header+cookie resolve, missing/invalid/refresh-as-access/\ndeactivated -> 401, require_roles allow+deny; service (3) refresh new-pair+audit,\nreject access token, reject deactivated; API (6) login pair, wrong-pw 401, me\n401-unauth + 200-with-bearer, refresh new pair, refresh rejects access token.\nFull suite: 97 passed.\n\nImplements TASKS 1.6, 1.7, 1.8, 1.9.\nRefs: DESIGN 3 (A3, A4, A5), 7.3, 7.6."
+      },
+      "files": [
+        "backend/app/core/deps.py",
+        "backend/app/services/auth_service.py",
+        "backend/app/api/v1/auth.py",
+        "backend/tests/core/test_deps.py",
+        "backend/tests/services/test_auth_service.py",
+        "backend/tests/api/test_auth.py"
+      ],
+      "task_ids": ["1.6", "1.7", "1.8", "1.9"],
+      "rule_refs": ["§3", "§7.3", "§7.6"],
+      "phase": 1,
+      "rationale": "Login/refresh/me endpoints + get_current_user (Bearer/cookie) + require_roles guard.",
+      "depends_on": [17]
+    },
+    {
+      "seq": 19,
+      "id": "c019",
+      "message": {
+        "subject": "feat(users): admin-provisioned staff accounts (A2)",
+        "body": "Adds the admin-only staff provisioning path, mirroring real clinics where staff\naccounts are created by an admin, not self-service (story A2).\n\n- auth_service: extracted _create_account() to centralize the user+matching-\n  profile invariant (PatientProfile/DoctorProfile/NurseProfile via a role->profile\n  map; ADMIN gets none). register_patient() now delegates to it. Added\n  provision_staff(admin_id, UserCreate): rejects the PATIENT role\n  (StaffRoleRequired, 409 — patients self-register) and duplicate emails,\n  auditing 'user.provision' with the admin as actor.\n- app/api/v1/users.py: POST /api/v1/users gated by require_roles(ADMIN) -> 201\n  UserOut; mounted on the v1 router.\n\nTests: service (3) provision doctor+profile+audit, reject patient role, reject\nduplicate email; API (4) admin provisions doctor, 401 unauthenticated, 403 for a\npatient caller (RBAC gate), 409 for patient role. Full suite: 104 passed.\n\nImplements TASKS 1.5.\nRefs: DESIGN 3 (A2, A5), 6, 5.7."
+      },
+      "files": [
+        "backend/app/services/auth_service.py",
+        "backend/app/api/v1/users.py",
+        "backend/app/api/router.py",
+        "backend/tests/services/test_auth_service.py",
+        "backend/tests/api/test_users.py"
+      ],
+      "task_ids": ["1.5"],
+      "rule_refs": ["§3", "§6", "§5.7"],
+      "phase": 1,
+      "rationale": "Admin-only staff provisioning (role-appropriate profile + audit), exercising the RBAC guard end to end.",
+      "depends_on": [18]
+    },
+    {
+      "seq": 20,
+      "id": "c020",
+      "message": {
+        "subject": "feat(db): seed one demo user per role (idempotent)",
+        "body": "Implements the seed entrypoint so a fresh clone is immediately explorable.\n\n- app/db/seed.py: seeds one account per role (patient/nurse/doctor/admin) with\n  their profiles, all sharing a well-known demo password (Passw0rd!). Idempotent:\n  upserts by email so re-running is a no-op; prints how many were created.\n  Wrapped in a single unit_of_work().\n\nVerified end to end: ran scripts/seed.sh against a migrated DB — created 4 users\nfirst run, 'nothing to do' on the second (idempotent).\n\nTests (3): seeds exactly one user per role, second run does not duplicate, and a\nseeded account can authenticate via auth_service.login. Full suite: 107 passed.\n\nImplements TASKS 1.12.\nRefs: DESIGN 3, 8, 9 (Phase 1)."
+      },
+      "files": [
+        "backend/app/db/seed.py",
+        "backend/tests/db/test_seed.py"
+      ],
+      "task_ids": ["1.12"],
+      "rule_refs": ["§3", "§8"],
+      "phase": 1,
+      "rationale": "Idempotent demo seed (one user per role) making the app demoable on first run.",
+      "depends_on": [19]
+    },
+    {
+      "seq": 21,
+      "id": "c021",
+      "message": {
+        "subject": "docs(kb): author Phase 1 knowledge base (auth ADR, access matrix, glossary)",
+        "body": "Authors the Phase 1 knowledge base — the curated 'why' that is the whole point\nof this project (an AI with this KB should reason correctly where raw source\nwouldn't).\n\n- knowledge-base/adr/ADR-0003-authentication-and-authorization.md: the auth/RBAC\n  decision record — bcrypt (+ why the 4.0.1 pin), JWT access/refresh with type\n  enforcement, one identity model over Bearer AND HttpOnly cookie, coarse\n  require_roles vs fine service checks, deactivate-not-delete, and the audited\n  auth events. Includes consequences + alternatives (server sessions, OAuth,\n  argon2).\n- knowledge-base/domain/access-matrix.md: roles x actions with rationale PER\n  CELL (why nurses aren't clinical authors, why admin can't author clinical data\n  or is the sole audit reader, why doctor needs the fine treating-relationship\n  check), phase status per row, and where each enforcement layer lives.\n- knowledge-base/domain/glossary.md: ubiquitous language; nails the\n  appointment-vs-encounter distinction and defines later-phase terms now so the\n  vocabulary is stable.\n\nDocs-only slice; full suite remains green (107 passed).\n\nImplements TASKS 1.14.\nRefs: DESIGN 11, 6, 3, 5.7."
+      },
+      "files": [
+        "docs/knowledge-base/adr/ADR-0003-authentication-and-authorization.md",
+        "docs/knowledge-base/domain/access-matrix.md",
+        "docs/knowledge-base/domain/glossary.md"
+      ],
+      "task_ids": ["1.14"],
+      "rule_refs": ["§11", "§6", "§3", "§5.7"],
+      "phase": 1,
+      "rationale": "Curated Phase 1 KB (auth ADR + access matrix + glossary) — the knowledge-base thesis in practice.",
+      "depends_on": [19]
+    },
+    {
+      "seq": 22,
+      "id": "c022",
+      "message": {
+        "subject": "test(auth): Phase 1 exit-gate RBAC/audit integration + fix failure-audit rollback",
+        "body": "Adds the Phase 1 exit-gate integration test and fixes a real bug it exposed.\n\nBug: failed-login/refresh audit rows were written with flush-only inside the\nrequest transaction, then the InvalidCredentials raise caused get_session to roll\nback — discarding the very audit row that a failed login must record. The\nservice-level test missed it because its fixture didn't roll back on the caught\nexception; the HTTP integration test (real get_session) caught it.\n\nFix: record_audit() gains commit=False (default) / commit=True. Failure paths in\nauth_service (auth.login_failed, auth.refresh_failed x2) use commit=True so the\naudit survives the request rollback. commit=True is only used where the audit row\nis the sole pending write, so it can't persist unrelated half-done work. Success\npaths remain flush-only (atomic with the audited action).\n\n- tests/api/test_rbac_integration.py: exit gate — admin provisions doctor+nurse,\n  patient self-registers, all four roles log in + resolve via /me, a patient is\n  403 on the admin-only endpoint, and audit rows exist for the key actions; plus\n  unknown-email login writes an actor-less auth.login_failed row.\n- tests/services/test_audit_service.py: pins commit=True survives rollback.\n\nFull suite: 110 passed.\n\nImplements TASKS 1.13 and the Phase 1 exit gate.\nRefs: DESIGN 9 (Phase 1), 5.7, 6, 3 (A5)."
+      },
+      "files": [
+        "backend/app/services/audit_service.py",
+        "backend/app/services/auth_service.py",
+        "backend/tests/services/test_audit_service.py",
+        "backend/tests/api/test_rbac_integration.py"
+      ],
+      "task_ids": ["1.13"],
+      "rule_refs": ["§9", "§5.7", "§6", "§3"],
+      "phase": 1,
+      "rationale": "Exit-gate integration test; fixes failure-audit loss on request rollback (found by the test).",
+      "depends_on": [20, 21]
+    },
+    {
+      "seq": 23,
+      "id": "c023",
+      "message": {
+        "subject": "feat(models): add AvailabilitySlot model and migration",
+        "body": "Begins Phase 2 (scheduling) with the bookable-window model (story B1).\n\n- app/models/scheduling.py: AvailabilitySlot(doctor_id -> users.id CASCADE,\n  start_at, end_at, is_booked). Design choices documented: doctor referenced by\n  User id (no profile join in scheduling queries); is_booked is a denormalized\n  flag kept in lockstep by the booking service in one transaction; slots are\n  half-open [start, end) intervals so back-to-back slots don't overlap; composite\n  index (doctor_id, start_at) for the 'this doctor's slots by time' query.\n- alembic/env.py + migration ed6325972492 (down_revision 9c391aebfa9f): create\n  the table + index. Autogenerated, REVIEWED per DESIGN 8; verified the full\n  4-migration chain upgrades to head.\n\nTests (2): slot persists with is_booked default False; multiple slots per doctor.\nFull suite: 112 passed.\n\nImplements TASKS 2.1.\nRefs: DESIGN 4.1, 3 (B1), 5.2, 8."
+      },
+      "files": [
+        "backend/app/models/scheduling.py",
+        "backend/alembic/env.py",
+        "backend/alembic/versions/20260808_2312_ed6325972492_create_availability_slots_table.py",
+        "backend/tests/models/test_scheduling.py"
+      ],
+      "task_ids": ["2.1"],
+      "rule_refs": ["§4.1", "§3", "§5.2", "§8"],
+      "phase": 2,
+      "rationale": "AvailabilitySlot persistence model (half-open intervals, is_booked flag) + reviewed migration.",
+      "depends_on": [12]
+    },
+    {
+      "seq": 24,
+      "id": "c024",
+      "message": {
+        "subject": "feat(domain): add appointment state machine (§5.1)",
+        "body": "Adds the pure appointment state machine — the first domain/ module and a piece\nof 'knowledge-base gold' (legal transitions + who may trigger each) that an AI\ncan't infer from CRUD code.\n\n- app/core/exceptions.py (NEW): extracted the AppError hierarchy into a\n  framework-free module (plain int status codes, no FastAPI) so the domain can\n  raise typed errors while staying pure (rule 7.6.3). Adds IllegalTransition\n  (409). core/errors.py now imports+re-exports these and keeps only the HTTP\n  handlers, so existing `from app.core.errors import ...` imports still work.\n- app/domain/appointment_state.py: AppointmentStatus + Transition enums and a\n  single _TRANSITIONS table (from-states, target, allowed-roles) that IS the\n  §5.1 rule. can_transition() (pure predicate) and assert_transition_allowed()\n  (returns target state or raises IllegalTransition, distinguishing illegal-\n  from-state vs role-not-permitted). Terminal states have no outgoing edges.\n- app/domain/__init__.py package docstring.\n\nTests: state machine (9) happy-path lifecycle, illegal-from-state, role-gating\n(patient can't confirm; can cancel, can't check-in; nurse check-in/no-show;\nreschedule->requested; no cancel once in_progress; terminal states inert); plus\na domain-purity guard test that fails if any domain module imports fastapi/\nsqlalchemy. Full suite: 122 passed.\n\nImplements TASKS 2.4.\nRefs: DESIGN 5.1, 6, 7.6 (rule 3)."
+      },
+      "files": [
+        "backend/app/core/exceptions.py",
+        "backend/app/core/errors.py",
+        "backend/app/domain/__init__.py",
+        "backend/app/domain/appointment_state.py",
+        "backend/tests/domain/__init__.py",
+        "backend/tests/domain/test_appointment_state.py",
+        "backend/tests/domain/test_domain_purity.py"
+      ],
+      "task_ids": ["2.4"],
+      "rule_refs": ["§5.1", "§6", "§7.6"],
+      "phase": 2,
+      "rationale": "Pure appointment state machine (legal transitions + role gating) with framework-free typed errors.",
+      "depends_on": [7]
+    },
+    {
+      "seq": 25,
+      "id": "c025",
+      "message": {
+        "subject": "feat(domain): add scheduling rules — conflict/buffer + cancel cutoff (§5.2)",
+        "body": "Adds the second pure scheduling domain module.\n\n- app/domain/scheduling_rules.py: TimeWindow value object (immutable half-open\n  [start,end), rejects non-positive duration). windows_overlap() with half-open\n  semantics (back-to-back slots don't overlap). conflicts_with_buffer(candidate,\n  existing, buffer_minutes): widens each existing window by the buffer on both\n  sides before the overlap test, enforcing a minimum gap; buffer=0 reduces to a\n  plain overlap check. is_late_cancellation(now, start, cutoff_hours): classifies\n  (never blocks) a cancellation as late when the start is within the cutoff or\n  already passed. Thresholds are passed in by the caller (from Settings), so the\n  domain never reaches into config.\n\nTests (11): duration guard, overlap, back-to-back non-overlap, gap-vs-buffer\nboth ways, direct overlap with buffer=0, empty existing, all-existing scan, and\nlate/not-late/already-started cutoff cases. Full suite: 133 passed.\n\nImplements TASKS 2.6 (and 2.7's late-cancel classifier).\nRefs: DESIGN 5.2, 7.6 (rule 3)."
+      },
+      "files": [
+        "backend/app/domain/scheduling_rules.py",
+        "backend/tests/domain/test_scheduling_rules.py"
+      ],
+      "task_ids": ["2.6"],
+      "rule_refs": ["§5.2", "§7.6"],
+      "phase": 2,
+      "rationale": "Pure conflict/buffer + late-cancellation rules over datetimes; thresholds injected from config.",
+      "depends_on": [24]
+    },
+    {
+      "seq": 26,
+      "id": "c026",
+      "message": {
+        "subject": "feat(models): add Appointment model and migration",
+        "body": "Adds the persistence backing the state machine (DESIGN §4.1, §5.1).\n\n- app/models/scheduling.py: Appointment(patient_id, doctor_id -> users.id\n  CASCADE; slot_id -> availability_slots.id RESTRICT, UNIQUE; status; reason;\n  cancelled_late). status is the domain AppointmentStatus enum persisted by\n  value, so the stored states and the state-machine rules share one source of\n  truth; default/server_default = 'requested'. slot_id is unique so a slot backs\n  at most one appointment row (double-booking guard at the DB level, complementing\n  the domain conflict check). RESTRICT stops deleting a slot out from under an\n  appointment. cancelled_late records how a cancel happened (the §5.2 classifier\n  decides it); indexes on patient/doctor/status for the common lookups.\n- migration 7c55e96cd3c2 (down_revision ed6325972492): create appointments +\n  unique(slot_id) + 3 indexes. Autogenerated, REVIEWED per DESIGN 8; verified the\n  5-migration chain upgrades and unique(slot_id) is present.\n\nTests (3): status defaults to requested + cancelled_late False, status round-\ntrips as its string value, and slot_id uniqueness rejects a second appointment.\nFull suite: 136 passed.\n\nImplements TASKS 2.3.\nRefs: DESIGN 4.1, 5.1, 5.2, 8."
+      },
+      "files": [
+        "backend/app/models/scheduling.py",
+        "backend/alembic/versions/20260808_2319_7c55e96cd3c2_create_appointments_table.py",
+        "backend/tests/models/test_scheduling.py"
+      ],
+      "task_ids": ["2.3"],
+      "rule_refs": ["§4.1", "§5.1", "§5.2", "§8"],
+      "phase": 2,
+      "rationale": "Appointment model with domain-enum status + unique slot_id (DB double-book guard) + migration.",
+      "depends_on": [23, 24]
+    },
+    {
+      "seq": 27,
+      "id": "c027",
+      "message": {
+        "subject": "feat(appointments): publish/list availability slots (B1) + two fixes",
+        "body": "Doctors can publish availability and everyone can browse open slots.\n\n- repositories/appointment_repository.py: SlotRepository (list_for_doctor,\n  list_open_for_doctor) and AppointmentRepository (list_for_patient/doctor,\n  active_windows_for_doctor -> TimeWindow list feeding the pure conflict check;\n  excludes cancelled/no-show/completed via _BLOCKING_STATES).\n- services/appointment_service.publish_slot(): validates interval, rejects slots\n  conflicting with the doctor's booked appointments within the configured buffer\n  (§5.2), audits slot.publish.\n- schemas/appointment.py: SlotCreate (validator: end>start), SlotOut,\n  BookingRequest, AppointmentOut.\n- api/v1/appointments.py: POST /slots (doctor-only), GET /slots/mine (doctor),\n  GET /slots/open/{doctor_id} (any authed user); mounted on the v1 router.\n\nTwo bugs found by tests and fixed:\n  1) core/errors: the request-validation handler passed exc.errors() straight to\n     JSONResponse, which crashed when a validator's ctx held a ValueError. Now\n     run through jsonable_encoder.\n  2) appointment_repository: SQLite drops tzinfo, so DB datetimes came back naive\n     and broke naive/aware comparison in the domain. active_windows_for_doctor\n     now coerces stored times to UTC-aware (_as_utc) at the DAL boundary.\n\nTests: service (4) publish+audit, bad interval, conflict-with-buffer, non-\nconflicting allowed; API (5) publish+list, 422 bad interval, 403 patient, patient\nlists open slots, 401 unauth. Full suite: 145 passed.\n\nImplements TASKS 2.2 (and 2.5 groundwork: SlotRepository/open-slot listing).\nRefs: DESIGN 3 (B1, B2), 5.2, 7.6."
+      },
+      "files": [
+        "backend/app/repositories/appointment_repository.py",
+        "backend/app/services/appointment_service.py",
+        "backend/app/schemas/appointment.py",
+        "backend/app/api/v1/appointments.py",
+        "backend/app/api/router.py",
+        "backend/app/core/errors.py",
+        "backend/tests/services/test_appointment_service.py",
+        "backend/tests/api/test_appointments.py"
+      ],
+      "task_ids": ["2.2"],
+      "rule_refs": ["§3", "§5.2", "§7.6"],
+      "phase": 2,
+      "rationale": "Doctor slot publishing/listing with buffer-aware conflict check; fixes validation-encoder + naive-datetime bugs.",
+      "depends_on": [25, 26, 18]
+    },
+    {
+      "seq": 28,
+      "id": "c028",
+      "message": {
+        "subject": "feat(appointments): patient booking flow (B2, B3)",
+        "body": "Patients can book an open slot and list their appointments.\n\n- services/appointment_service.book_appointment(): loads the slot (404 if\n  missing), rejects an already-booked slot (SlotConflict 409), re-runs the\n  buffer-aware conflict check against the doctor's active appointments (§5.2),\n  then marks the slot booked and creates the appointment in 'requested' — all in\n  one unit of work so it's atomic. Audits appointment.book. New typed error\n  SlotConflict (409).\n- api/v1/appointments.py: POST /appointments (patient-only) and GET\n  /appointments/mine.\n\nDouble-booking is guarded three ways: the is_booked flag (fast check), the\nbuffer conflict scan, and the unique slot_id constraint on appointments (last-\nline DB guard; the dedicated race test comes in the concurrency slice 2.10).\n\nTests: service (3) book marks-slot+audits, unknown slot 404, already-booked 409;\nAPI (3) patient books + slot leaves open list + shows in mine, second patient on\nsame slot 409, doctor booking 403. Full suite: 151 passed.\n\nImplements TASKS 2.5.\nRefs: DESIGN 3 (B2, B3), 5.2, 7.6."
+      },
+      "files": [
+        "backend/app/services/appointment_service.py",
+        "backend/app/api/v1/appointments.py",
+        "backend/tests/services/test_appointment_service.py",
+        "backend/tests/api/test_appointments.py"
+      ],
+      "task_ids": ["2.5"],
+      "rule_refs": ["§3", "§5.2", "§7.6"],
+      "phase": 2,
+      "rationale": "Atomic patient booking (slot load/guard, buffer re-check, mark booked, create appointment, audit).",
+      "depends_on": [27]
+    },
+    {
+      "seq": 29,
+      "id": "c029",
+      "message": {
+        "subject": "feat(appointments): state transitions — cancel/late-flag + staff advance (B4, B6)",
+        "body": "Wires the pure state machine (§5.1) and late-cancel classifier (§5.2) into a\nservice + endpoint.\n\n- services/appointment_service.change_status(actor, role, appt, transition):\n  loads the appointment (404), enforces patient-ownership (403 if a patient\n  targets another's appointment — the fine check role alone can't express), then\n  delegates legality + role permission to assert_transition_allowed (409 via\n  IllegalTransition). Cancelling frees the slot (is_booked=False) and sets\n  cancelled_late via is_late_cancellation without blocking (§5.2). Audits\n  appointment.<transition>. DB datetimes coerced to UTC-aware before the\n  cutoff check.\n- api/v1/appointments.py: POST /appointments/{id}/transitions/{transition};\n  any authed user, the state machine decides role permission. Unknown transition\n  -> 422 (enum-validated).\n\nTests: service (6) confirm+cancel frees slot, not-late vs late cancel, illegal\ntransition, patient can't touch others', full staff lifecycle confirm->check_in\n->begin->complete; API (5) confirm-then-cancel, illegal 409, patient-confirm\n409, unknown-transition 422. Full suite: 161 passed.\n\nImplements TASKS 2.7, 2.8.\nRefs: DESIGN 5.1, 5.2, 3 (B4, B6), 6, 7.6."
+      },
+      "files": [
+        "backend/app/services/appointment_service.py",
+        "backend/app/api/v1/appointments.py",
+        "backend/tests/services/test_appointment_service.py",
+        "backend/tests/api/test_appointments.py"
+      ],
+      "task_ids": ["2.7", "2.8"],
+      "rule_refs": ["§5.1", "§5.2", "§3", "§6", "§7.6"],
+      "phase": 2,
+      "rationale": "State-machine-driven transitions with cancel slot-freeing + late flag and staff lifecycle advance.",
+      "depends_on": [28]
+    },
+    {
+      "seq": 30,
+      "id": "c030",
+      "message": {
+        "subject": "feat(appointments): staff schedule views + booking race guard test (B5, §5.2)",
+        "body": "Adds the staff schedule views and a deterministic concurrency guard test.\n\n- api/v1/appointments.py: GET /appointments/doctor (doctor's calendar) and GET\n  /appointments/ward (nurse-only ward schedule). v1 nurse view is single-ward\n  (all appointments); per-ward scoping via NurseProfile.ward is a documented\n  future refinement (out of v1). AppointmentRepository.list_all() added.\n- tests/services/test_booking_concurrency.py: simulates the 'last slot' race —\n  two independent sessions both insert an appointment for the same slot after\n  both passed the is_booked check; the unique(slot_id) constraint lets exactly\n  one commit and forces IntegrityError on the other, so no double-book survives.\n\nTests: concurrency (1) exactly-one-wins; API (2) doctor calendar lists own,\nward requires nurse (doctor 403, nurse 200). Full suite: 164 passed.\n\nImplements TASKS 2.9, 2.10.\nRefs: DESIGN 3 (B5), 5.2, 6, 7.6."
+      },
+      "files": [
+        "backend/app/repositories/appointment_repository.py",
+        "backend/app/api/v1/appointments.py",
+        "backend/tests/services/test_booking_concurrency.py",
+        "backend/tests/api/test_appointments.py"
+      ],
+      "task_ids": ["2.9", "2.10"],
+      "rule_refs": ["§3", "§5.2", "§6", "§7.6"],
+      "phase": 2,
+      "rationale": "Doctor calendar + nurse ward views and a race test proving unique(slot_id) blocks double-booking.",
+      "depends_on": [29]
+    },
+    {
+      "seq": 31,
+      "id": "c031",
+      "message": {
+        "subject": "feat(web): cookie-session auth and role dashboards",
+        "body": "Builds the server-rendered auth flow so the browser UI has real sessions\n(DESIGN §7.3), the foundation the HTMX booking screens build on.\n\n- web/deps.py: get_current_web_user (resolves the hv_access cookie to a user or\n  None for anonymous nav) and require_web_user (raises _RedirectToLogin for\n  protected pages). The internal exception is turned into a 303->/login by a\n  handler registered in the app factory, keeping route bodies clean.\n- web/auth.py: GET/POST /login, GET/POST /register (patient self-service), POST\n  /logout. Success sets/clears the HttpOnly, SameSite=Lax hv_access cookie;\n  failures re-render the form with a generic error + proper status. Calls the\n  same auth_service the JSON API uses.\n- web/router.py: GET /dashboard dispatches to a per-role template\n  (_DASHBOARD_TEMPLATE).\n- templates: auth/login+register, dashboard/_base + patient/nurse/doctor/admin;\n  landing nav links to login/register; app.css gains form + dashboard styles.\n- main.py: mount the web auth router + the redirect handler.\n\nVerified live (uvicorn + seeded doctor): POST /login -> 303 + cookie; /dashboard\nwith cookie renders the doctor view; /dashboard without cookie -> 303 to /login.\n\nTests (web, 8): login page renders, anonymous dashboard redirects, register->\ncookie->patient dashboard, bad-login re-render 401, each of doctor/nurse/admin\nlands on its dashboard, logout clears session. Full suite: 172 passed.\n\nImplements TASKS 2.11 (auth + dashboards portion; HTMX booking screens follow).\nRefs: DESIGN 7.3, 3 (A3, B5), 7.6 (rule 7)."
+      },
+      "files": [
+        "backend/app/web/deps.py",
+        "backend/app/web/auth.py",
+        "backend/app/web/router.py",
+        "backend/app/main.py",
+        "backend/app/web/templates/auth/login.html",
+        "backend/app/web/templates/auth/register.html",
+        "backend/app/web/templates/dashboard/_base.html",
+        "backend/app/web/templates/dashboard/patient.html",
+        "backend/app/web/templates/dashboard/nurse.html",
+        "backend/app/web/templates/dashboard/doctor.html",
+        "backend/app/web/templates/dashboard/admin.html",
+        "backend/app/web/templates/landing.html",
+        "backend/app/web/static/app.css",
+        "backend/tests/web/test_auth_web.py"
+      ],
+      "task_ids": ["2.11"],
+      "rule_refs": ["§7.3", "§3", "§7.6"],
+      "phase": 2,
+      "rationale": "Server-rendered cookie login/register/logout + per-role dashboards; the web auth foundation.",
+      "depends_on": [18, 9]
+    },
+    {
+      "seq": 32,
+      "id": "c032",
+      "message": {
+        "subject": "feat(web): HTMX patient booking flow (B2)",
+        "body": "Completes the Phase 2 web UI with the patient booking screens.\n\n- repositories/user_repository.list_by_role(role, active_only=True): lists\n  active doctors (used to build the booking view; skips deactivated accounts).\n- web/appointments.py: patient-only screens (via _require_patient, 403 for\n  staff): GET /appointments/book (doctors + their open slots), POST\n  /appointments/book (HTMX — books via appointment_service and swaps in a\n  confirmation or inline-error partial), GET /appointments/mine. Thin over the\n  same service the JSON API uses (rule 7.6.7).\n- templates/appointments/: book.html (hx-post forms into #book-result),\n  partials/book_result.html (confirmation/error fragment), mine.html; patient\n  dashboard links re-enabled; app.css slot-list + table styles.\n- main.py mounts the web appointments router.\n\nTests (web, 5): book page lists slots, HTMX book returns confirmation partial +\nappears in 'mine', double-book shows error partial (409), page requires login\n(303), doctor is 403 on the patient booking page. Full suite: 177 passed.\n\nCompletes TASKS 2.11.\nRefs: DESIGN 7.3, 3 (B2), 7.6 (rule 7)."
+      },
+      "files": [
+        "backend/app/repositories/user_repository.py",
+        "backend/app/web/appointments.py",
+        "backend/app/main.py",
+        "backend/app/web/templates/dashboard/patient.html",
+        "backend/app/web/templates/appointments/book.html",
+        "backend/app/web/templates/appointments/partials/book_result.html",
+        "backend/app/web/templates/appointments/mine.html",
+        "backend/app/web/static/app.css",
+        "backend/tests/web/test_appointments_web.py"
+      ],
+      "task_ids": ["2.11"],
+      "rule_refs": ["§7.3", "§3", "§7.6"],
+      "phase": 2,
+      "rationale": "Patient HTMX booking page + confirmation partial + appointment list; completes the Phase 2 web UI.",
+      "depends_on": [31, 28]
+    },
+    {
+      "seq": 33,
+      "id": "c033",
+      "message": {
+        "subject": "test(appointments): Phase 2 exit-gate scheduling integration",
+        "body": "Adds the Phase 2 exit-gate integration test, pinning the full scheduling\njourney end to end over the JSON API.\n\n- tests/api/test_scheduling_integration.py:\n  * test_phase2_exit_gate: doctor publishes a slot, patient books it, a second\n    patient is blocked (409 double-book), then staff advance the lifecycle\n    confirm(doctor)->check_in(nurse)->begin(doctor)->complete(doctor).\n  * test_late_cancellation_is_flagged: a slot 1h out is booked then cancelled;\n    cancelled_late is True and the freed slot re-appears in the doctor's open\n    slots.\n\nAll green — no product changes needed. Full suite: 179 passed.\n\nImplements TASKS 2.12 and the Phase 2 exit gate.\nRefs: DESIGN 9 (Phase 2), 5.1, 5.2, 3 (B2-B6)."
+      },
+      "files": [
+        "backend/tests/api/test_scheduling_integration.py"
+      ],
+      "task_ids": ["2.12"],
+      "rule_refs": ["§9", "§5.1", "§5.2", "§3"],
+      "phase": 2,
+      "rationale": "End-to-end exit-gate test: book, double-book block, staff lifecycle, late-cancel flag + slot re-open.",
+      "depends_on": [32]
+    },
+    {
+      "seq": 34,
+      "id": "c034",
+      "message": {
+        "subject": "docs(kb): author Phase 2 knowledge base (business rules #1/#2 + workflows)",
+        "body": "Authors the Phase 2 knowledge base — the curated 'why' behind scheduling.\n\n- knowledge-base/domain/business-rules.md (NEW): Rule #1 (appointment state\n  machine) and Rule #2 (slot conflict/buffer/cancellation cutoff), each with\n  statement, why, edge cases (half-open intervals, buffer=0, already-started\n  cancel, blocking states, the unique-slot race guard), enforcement locations,\n  and the exact tests that pin them. Placeholders for rules #3-#8 with #7 (audit)\n  already noted as done.\n- knowledge-base/workflows/appointment-booking.md: Mermaid sequence for\n  publish->browse->book with both conflict checks and the error branches.\n- knowledge-base/workflows/appointment-lifecycle.md: Mermaid state diagram +\n  cancel sequence (ownership check, slot release, late flag); documents that\n  no-show is staff-only and does NOT free the slot (matches _SLOT_FREEING={CANCEL}).\n\nDocs-only; full suite unchanged at 179 passed.\n\nImplements TASKS 2.13.\nRefs: DESIGN 11, 5.1, 5.2, 3 (B1-B6)."
+      },
+      "files": [
+        "docs/knowledge-base/domain/business-rules.md",
+        "docs/knowledge-base/workflows/appointment-booking.md",
+        "docs/knowledge-base/workflows/appointment-lifecycle.md"
+      ],
+      "task_ids": ["2.13"],
+      "rule_refs": ["§11", "§5.1", "§5.2", "§3"],
+      "phase": 2,
+      "rationale": "Curated Phase 2 KB: business rules #1/#2 with why/edge-cases/tests + booking & lifecycle workflow diagrams.",
+      "depends_on": [33]
+    },
+    {
+      "seq": 35,
+      "id": "c035",
+      "message": {
+        "subject": "feat(models): add Encounter and Addendum clinical models (§5.6)",
+        "body": "Begins Phase 3 with the append-only clinical record models.\n\n- app/models/clinical.py: Encounter(appointment_id UNIQUE -> appointments\n  RESTRICT, patient_id, doctor_id, opened_at, closed_at?) — the record of a visit\n  that happened, distinct from the appointment (the plan); one encounter per\n  appointment. Addendum(target_type, target_id, author_id, note) — an immutable\n  correction referencing any clinical record via a lightweight polymorphic\n  (type,id) pair, so one table serves every entity. Append-only is enforced in\n  the service layer (later slice); the shape here reflects §5.6.\n- alembic/env.py + migration 79326e773cf9 (down_revision 7c55e96cd3c2): create\n  encounters + addenda + indexes. Autogenerated, REVIEWED per DESIGN 8; 6-\n  migration chain verified.\n\nTests (4): encounter persists open, one-encounter-per-appointment uniqueness,\naddendum references its target. Full suite: 182 passed.\n\nImplements TASKS 3.1 and the Addendum model portion of 3.5.\nRefs: DESIGN 4.1, 5.6, 8."
+      },
+      "files": [
+        "backend/app/models/clinical.py",
+        "backend/alembic/env.py",
+        "backend/alembic/versions/20260809_0051_79326e773cf9_create_encounters_and_addenda_tables.py",
+        "backend/tests/models/test_clinical.py"
+      ],
+      "task_ids": ["3.1"],
+      "rule_refs": ["§4.1", "§5.6", "§8"],
+      "phase": 3,
+      "rationale": "Append-only Encounter + polymorphic Addendum models + migration (persistence for §5.6).",
+      "depends_on": [26]
+    },
+    {
+      "seq": 36,
+      "id": "c036",
+      "message": {
+        "subject": "feat(domain): add age-based vitals ranges (§5.5)",
+        "body": "Adds the pure vitals-flagging rule.\n\n- app/domain/vitals_ranges.py: VitalsReading value object + flag_out_of_range(\n  age_years, reading) returning sorted flags (e.g. heart_rate_high, spo2_low) for\n  each recorded value outside its AGE-BANDED normal range. Age bands (infant/\n  child/adolescent/adult) capture that the same reading can be normal for one age\n  and abnormal for another — the non-obvious §5.5 rule. Only recorded (non-None)\n  values are checked. Reference values are illustrative teaching values, not\n  medical advice (Non-Goals). Pure module (no framework/DB imports).\n\nTests (7): adult all-in-range, adult high HR, SAME HR 150 normal-for-infant vs\nhigh-for-adult, low/high directions, None ignored, multiple flags sorted, child\nband boundary. Full suite: 189 passed.\n\nImplements TASKS 3.3.\nRefs: DESIGN 5.5, 7.6 (rule 3)."
+      },
+      "files": [
+        "backend/app/domain/vitals_ranges.py",
+        "backend/tests/domain/test_vitals_ranges.py"
+      ],
+      "task_ids": ["3.3"],
+      "rule_refs": ["§5.5", "§7.6"],
+      "phase": 3,
+      "rationale": "Pure age-banded vitals range check returning out-of-range flags.",
+      "depends_on": [24]
+    },
+    {
+      "seq": 37,
+      "id": "c037",
+      "message": {
+        "subject": "feat(domain): add treating-relationship scoping predicate (§5.3)",
+        "body": "Adds the pure fine-grained access check for reading patient history.\n\n- app/domain/access_scope.py: can_view_patient_history(viewer_role, viewer_id,\n  patient_id, has_treating_relationship). Patient -> own only; Doctor -> only\n  with a treating relationship (appointment/encounter) — role alone is not\n  enough, which is why this is the fine check behind the coarse role guard;\n  Nurse -> may read (supports triage); Admin -> NO clinical read (separation of\n  duties). Pure: the relationship fact is supplied by the service from a repo;\n  the predicate never touches the DB.\n\nTests (4): patient own-only, doctor with/without relationship, nurse allowed,\nadmin denied. Full suite: 193 passed.\n\nImplements TASKS 3.7.\nRefs: DESIGN 5.3, 6, 7.6 (rule 3)."
+      },
+      "files": [
+        "backend/app/domain/access_scope.py",
+        "backend/tests/domain/test_access_scope.py"
+      ],
+      "task_ids": ["3.7"],
+      "rule_refs": ["§5.3", "§6", "§7.6"],
+      "phase": 3,
+      "rationale": "Pure treating-relationship predicate — the fine authorization check role guards can't express.",
+      "depends_on": [24]
+    },
+    {
+      "seq": 38,
+      "id": "c038",
+      "message": {
+        "subject": "feat(models): add Vitals and Diagnosis clinical models",
+        "body": "Adds the append-only encounter children (stories C1, C2; §5.6).\n\n- app/models/clinical.py: Vitals(encounter_id, recorded_by, heart_rate/resp_rate\n  /systolic_bp/temp_c/spo2 all nullable, flags default '') — the flags column\n  snapshots the age-based out-of-range markers (§5.5) computed at record time.\n  Diagnosis(encounter_id, author_id, icd_code, description) — doctor-authored,\n  append-only; corrections via Addendum.\n- migration 373f7898b52e (down_revision 79326e773cf9): create vitals + diagnoses\n  + encounter indexes. Autogenerated, REVIEWED per DESIGN 8; 7-migration chain\n  verified.\n\nTests (2 added): vitals persist with flags default empty, diagnosis persists.\nFull suite: 195 passed.\n\nImplements TASKS 3.2, 3.4.\nRefs: DESIGN 4.1, 3 (C1, C2), 5.5, 5.6, 8."
+      },
+      "files": [
+        "backend/app/models/clinical.py",
+        "backend/alembic/versions/20260809_0058_373f7898b52e_create_vitals_and_diagnoses_tables.py",
+        "backend/tests/models/test_clinical.py"
+      ],
+      "task_ids": ["3.2", "3.4"],
+      "rule_refs": ["§4.1", "§3", "§5.5", "§5.6", "§8"],
+      "phase": 3,
+      "rationale": "Vitals (with flags snapshot) + Diagnosis append-only models + migration.",
+      "depends_on": [35]
+    },
+    {
+      "seq": 39,
+      "id": "c039",
+      "message": {
+        "subject": "feat(clinical): encounter workflow, vitals, diagnoses, scoped history",
+        "body": "The Phase 3 clinical use cases, wiring the pure rules (§5.3/§5.5) to\npersistence + audit inside the unit of work; append-only (§5.6) enforced by\nexposing only create/addendum ops (no update/delete).\n\n- repositories/encounter_repository.py: encounter CRUD-add, per-patient history,\n  has_treating_relationship (any shared appointment OR encounter — feeds §5.3),\n  and add/list for vitals+diagnoses+addenda.\n- user_repository.get_patient_profile: for age lookup.\n- services/clinical_service.py: open_encounter (idempotent, doctor-owns check),\n  record_vitals (computes patient age from profile -> flag_out_of_range,\n  stores flags), add_diagnosis (owning-doctor only), add_addendum (clinical staff\n  only), get_patient_history (applies can_view_patient_history; audits\n  history.read / history.read_denied — denial committed so it survives the 403\n  rollback). Every PHI op audited (§5.7).\n- schemas/encounter.py + api/v1/encounters.py: POST /encounters, /{id}/vitals\n  (nurse), /{id}/diagnoses (doctor), /addenda, GET /history/{patient_id}; mounted\n  on v1 router.\n\nTests: service (7) idempotent open, wrong-doctor denied, age-based vitals flag,\ndiagnosis owning-doctor, history scoping allow/deny + audit, patient own-only,\naddendum staff-only; API (5) full flow (open->flagged vitals->diagnosis),\nnurse-can't-open 403, doctor-can't-record-vitals 403, history scoping over HTTP,\npatient reads own. Full suite: 207 passed.\n\nImplements TASKS 3.5, 3.6, 3.8, 3.9, 3.11.\nRefs: DESIGN 3 (C1-C5), 5.3, 5.5, 5.6, 5.7, 7.6."
+      },
+      "files": [
+        "backend/app/repositories/encounter_repository.py",
+        "backend/app/repositories/user_repository.py",
+        "backend/app/services/clinical_service.py",
+        "backend/app/schemas/encounter.py",
+        "backend/app/api/v1/encounters.py",
+        "backend/app/api/router.py",
+        "backend/tests/services/test_clinical_service.py",
+        "backend/tests/api/test_encounters.py"
+      ],
+      "task_ids": ["3.5", "3.6", "3.8", "3.9", "3.11"],
+      "rule_refs": ["§3", "§5.3", "§5.5", "§5.6", "§5.7", "§7.6"],
+      "phase": 3,
+      "rationale": "Clinical service+API: encounters, age-flagged vitals, diagnoses, addenda, treating-scoped history, all audited.",
+      "depends_on": [36, 37, 38]
+    },
+    {
+      "seq": 40,
+      "id": "c040",
+      "message": {
+        "subject": "feat(clinical): consent gating on sensitive encounters (§5.8)",
+        "body": "Adds the consent gate for sensitive clinical records.\n\n- models/clinical.Encounter: sensitive + consent_shared boolean flags (default\n  False). A sensitive encounter (e.g. mental-health notes) is hidden from\n  otherwise-authorized staff unless the patient has shared consent.\n- domain/access_scope.is_encounter_visible(...): pure per-record filter — the\n  patient always sees their own; a sensitive record is hidden from staff without\n  consent_shared; non-sensitive is normal. Layered ON TOP of\n  can_view_patient_history (which gates access to the history at all).\n- clinical_service.get_patient_history: applies the per-record filter after the\n  access check.\n- schemas EncounterOut exposes the two flags.\n- migration 69a027b6d00b (down_revision 373f7898b52e): add the two columns. A\n  spurious vitals.flags server-default diff was removed during review; 8-chain\n  up + downgrade verified.\n\nTests: domain (5) patient-own sensitive, staff hidden w/o consent (doctor+nurse),\nstaff visible w/ consent, non-sensitive visible; service (1) sensitive filtered\nfrom treating doctor until consent, patient always sees own. Full suite: 212\npassed.\n\nImplements TASKS 3.10.\nRefs: DESIGN 5.8, 5.3, 8."
+      },
+      "files": [
+        "backend/app/models/clinical.py",
+        "backend/app/domain/access_scope.py",
+        "backend/app/services/clinical_service.py",
+        "backend/app/schemas/encounter.py",
+        "backend/alembic/versions/20260809_1608_69a027b6d00b_add_encounter_sensitivity_and_consent_.py",
+        "backend/tests/domain/test_access_scope.py",
+        "backend/tests/services/test_clinical_service.py"
+      ],
+      "task_ids": ["3.10"],
+      "rule_refs": ["§5.8", "§5.3", "§8"],
+      "phase": 3,
+      "rationale": "Consent gate: sensitive encounters hidden from staff without shared consent; patient always sees own.",
+      "depends_on": [39]
+    },
+    {
+      "seq": 41,
+      "id": "c041",
+      "message": {
+        "subject": "feat(web): clinical screens — patient history + doctor encounter (C4, C2)",
+        "body": "Adds the Phase 3 web UI.\n\n- web/clinical.py: GET /clinical/history (patient's own history, service-scoped;\n  renders encounters with vitals + diagnoses), GET /clinical/encounters/{id}\n  (owning-doctor only encounter page), POST /clinical/encounters/{id}/diagnoses\n  (HTMX — add diagnosis, swap updated list / inline error). Thin over\n  clinical_service (rule 7.6.7).\n- templates/encounters/: history.html, detail.html, partials/diagnoses.html;\n  patient dashboard gains a 'My medical history' link; app.css clinical styles.\n- main.py mounts the web clinical router.\n\nTests (web, 4): patient history page, doctor encounter page + HTMX diagnosis add\npartial, non-owning doctor 403, history requires login (303). Full suite: 216\npassed.\n\nImplements TASKS 3.12.\nRefs: DESIGN 7.3, 3 (C2, C4), 7.6 (rule 7)."
+      },
+      "files": [
+        "backend/app/web/clinical.py",
+        "backend/app/main.py",
+        "backend/app/web/templates/encounters/history.html",
+        "backend/app/web/templates/encounters/detail.html",
+        "backend/app/web/templates/encounters/partials/diagnoses.html",
+        "backend/app/web/templates/dashboard/patient.html",
+        "backend/app/web/static/app.css",
+        "backend/tests/web/test_clinical_web.py"
+      ],
+      "task_ids": ["3.12"],
+      "rule_refs": ["§7.3", "§3", "§7.6"],
+      "phase": 3,
+      "rationale": "Web clinical screens: patient history view + doctor encounter page with HTMX diagnosis add.",
+      "depends_on": [39, 31]
+    },
+    {
+      "seq": 42,
+      "id": "c042",
+      "message": {
+        "subject": "test(clinical): Phase 3 exit-gate integration + append-only check",
+        "body": "Adds the Phase 3 exit-gate integration test.\n\n- tests/api/test_clinical_integration.py:\n  * test_phase3_exit_gate: nurse->doctor flow end to end — doctor opens\n    encounter, nurse records vitals (HR 60 flagged low for a young child but\n    normal for an adult, exercising the age rule), doctor diagnoses, patient\n    reads own history, a non-treating doctor is denied; asserts the full set of\n    audit actions (encounter.open, vitals.record, diagnosis.create, history.read,\n    history.read_denied).\n  * test_append_only_no_delete_endpoint: no DELETE/PUT route exists for\n    encounters (404/405); corrections go through POST /encounters/addenda —\n    proving §5.6 immutability at the API surface.\n\nAll green. Full suite: 218 passed.\n\nImplements TASKS 3.13 and the Phase 3 exit gate.\nRefs: DESIGN 9 (Phase 3), 5.3, 5.5, 5.6, 5.7."
+      },
+      "files": [
+        "backend/tests/api/test_clinical_integration.py"
+      ],
+      "task_ids": ["3.13"],
+      "rule_refs": ["§9", "§5.3", "§5.5", "§5.6", "§5.7"],
+      "phase": 3,
+      "rationale": "Exit-gate: nurse->doctor flow + age-flagged vitals + scoping (allow/deny+audit) + append-only surface.",
+      "depends_on": [40, 41]
+    },
+    {
+      "seq": 43,
+      "id": "c043",
+      "message": {
+        "subject": "docs(kb): author Phase 3 knowledge base (rules #3/#5/#6/#8 + workflow)",
+        "body": "Completes the Phase 3 knowledge base.\n\n- knowledge-base/domain/business-rules.md: fills in Rule #3 (treating-\n  relationship scoping), #5 (age-based vitals ranges), #6 (immutable records/\n  addenda), #8 (consent gating) — each with statement, why, edge cases,\n  enforcement locations, and the tests that pin it. #7 (audit) already present.\n- knowledge-base/workflows/triage-to-consult.md: Mermaid sequence for the full\n  clinical visit (open encounter -> nurse vitals w/ age flags -> doctor diagnosis\n  -> scoped history read with the two read gates and audited denial).\n\nDocs-only; full suite unchanged at 218 passed.\n\nImplements TASKS 3.14.\nRefs: DESIGN 11, 5.3, 5.5, 5.6, 5.8."
+      },
+      "files": [
+        "docs/knowledge-base/domain/business-rules.md",
+        "docs/knowledge-base/workflows/triage-to-consult.md"
+      ],
+      "task_ids": ["3.14"],
+      "rule_refs": ["§11", "§5.3", "§5.5", "§5.6", "§5.8"],
+      "phase": 3,
+      "rationale": "Curated Phase 3 KB: rules #3/#5/#6/#8 with why/edge-cases/tests + triage->consult workflow.",
+      "depends_on": [42]
+    },
+    {
+      "seq": 44,
+      "id": "c044",
+      "message": {
+        "subject": "feat(models): add prescription domain models (medication/allergy/interaction/rx)",
+        "body": "Begins Phase 4 with the models backing the §5.4 safety checks.\n\n- app/models/prescription.py: Medication (name unique, drug_class, is_controlled),\n  Allergy (patient_id, substance [drug OR class name], reaction, severity),\n  DrugInteraction (unordered pair unique + severity), Prescription (encounter_id,\n  patient_id, prescriber_id, medication_id RESTRICT, dose, refills, status).\n- Also fixes a recurring autogenerate false-diff at the root: Vitals.flags\n  server_default changed from '' to text(\"''\") so it matches SQLite's reflected\n  form (the spurious 'changed default' diff appeared on every autogenerate;\n  regenerating this migration confirmed it's gone).\n- alembic/env.py + migration f8d94a046c95 (down_revision 69a027b6d00b): create\n  the 4 tables + indexes. Autogenerated, REVIEWED per DESIGN 8; 9-migration chain\n  verified.\n\nTests (5): medication default-not-controlled + unique name, allergy substance,\ninteraction pair uniqueness, prescription defaults (refills 0, status active).\nFull suite: 223 passed.\n\nImplements TASKS 4.1, 4.2, 4.3, 4.4.\nRefs: DESIGN 4.1, 5.4, 8."
+      },
+      "files": [
+        "backend/app/models/prescription.py",
+        "backend/app/models/clinical.py",
+        "backend/alembic/env.py",
+        "backend/alembic/versions/20260809_1619_f8d94a046c95_create_prescription_domain_tables.py",
+        "backend/tests/models/test_prescription.py"
+      ],
+      "task_ids": ["4.1", "4.2", "4.3", "4.4"],
+      "rule_refs": ["§4.1", "§5.4", "§8"],
+      "phase": 4,
+      "rationale": "Medication/Allergy/DrugInteraction/Prescription models + migration; roots out the vitals.flags false-diff.",
+      "depends_on": [38]
+    },
+    {
+      "seq": 45,
+      "id": "c045",
+      "message": {
+        "subject": "feat(domain): add prescription safety rules (§5.4)",
+        "body": "Adds the pure §5.4 safety-decision logic — the Phase 4 centerpiece.\n\n- app/domain/prescription_safety.py: DrugFacts + SafetyContext value objects and\n  evaluate_prescription(drug, context, *, refills, override_interaction).\n  Three checks, in severity order:\n    1) allergy (name OR class match) -> HARD BLOCK, non-overridable;\n    2) controlled substance -> refills capped at MAX_CONTROLLED_REFILLS (0);\n    3) drug interaction -> block with reason 'interaction' UNLESS overridden,\n       in which case allowed but the warning is surfaced for the record.\n  Allergy is evaluated first so it's always reported and can't be bypassed by an\n  override. Pure: the service supplies facts from repos; no I/O here.\n\nTests (9): clean allowed, allergy by name/class, allergy non-overridable,\nrefill cap over/at limit, interaction block-without/allow-with override,\nallergy-precedes-interaction. Full suite: 232 passed.\n\nImplements TASKS 4.5, 4.6, 4.7.\nRefs: DESIGN 5.4, 7.6 (rule 3)."
+      },
+      "files": [
+        "backend/app/domain/prescription_safety.py",
+        "backend/tests/domain/test_prescription_safety.py"
+      ],
+      "task_ids": ["4.5", "4.6", "4.7"],
+      "rule_refs": ["§5.4", "§7.6"],
+      "phase": 4,
+      "rationale": "Pure prescription-safety evaluator: allergy hard-block, refill cap, overridable interaction warn.",
+      "depends_on": [24]
+    },
+    {
+      "seq": 46,
+      "id": "c046",
+      "message": {
+        "subject": "feat(prescriptions): safety-checked prescribe endpoint + reads (D1, D5)",
+        "body": "Wires the §5.4 evaluator to persistence + audit.\n\n- repositories/prescription_repository.py: MedicationRepository (get_by_name) +\n  PrescriptionRepository with the safety-fact queries — allergy_terms_for_patient,\n  active_medication_ids_for_patient, interacting_active_medication_ids (candidate's\n  interaction partners in either column of the unordered pair, intersected with\n  the patient's active meds) — and list_for_patient.\n- services/prescription_service.prescribe(): loads encounter (404) + owning-doctor\n  check (403), loads medication (404), gathers facts, runs evaluate_prescription,\n  and either audits prescription.blocked (committed, survives raise) + raises\n  UnsafePrescription(reason in details) or creates the rx + audits\n  prescription.create. list_for_patient for reads.\n- schemas/prescription.py + api/v1/prescriptions.py: POST /prescriptions (doctor,\n  safety-checked; override_interaction flag), GET /prescriptions/mine (patient),\n  GET /prescriptions/patient/{id} (clinical staff); mounted on v1 router.\n\nTests: service (5) clean+audit, allergy block+audit, refill cap, interaction\nblock-then-override, wrong-doctor 403; API (5) safe 201, allergy 409(reason),\nrefill-cap 409, patient-can't-prescribe 403, patient views own. Full suite: 242\npassed.\n\nImplements TASKS 4.8, 4.9.\nRefs: DESIGN 3 (D1, D5), 5.4, 5.7, 7.6."
+      },
+      "files": [
+        "backend/app/repositories/prescription_repository.py",
+        "backend/app/services/prescription_service.py",
+        "backend/app/schemas/prescription.py",
+        "backend/app/api/v1/prescriptions.py",
+        "backend/app/api/router.py",
+        "backend/tests/services/test_prescription_service.py",
+        "backend/tests/api/test_prescriptions.py"
+      ],
+      "task_ids": ["4.8", "4.9"],
+      "rule_refs": ["§3", "§5.4", "§5.7", "§7.6"],
+      "phase": 4,
+      "rationale": "Prescribe service+API enforcing §5.4 (allergy/interaction/refill) with audit; patient/staff reads.",
+      "depends_on": [44, 45, 39]
+    },
+    {
+      "seq": 47,
+      "id": "c047",
+      "message": {
+        "subject": "feat(db): seed medications and drug interactions",
+        "body": "Extends the idempotent seed with a curated medication catalog + interaction\npairs so the prescribe flow is demoable on a fresh clone.\n\n- app/db/seed.py: refactored into _seed_users/_seed_medications/_seed_interactions\n  (each idempotent by natural key). Seeds 5 meds (incl. controlled Oxycodone) and\n  2 interacting pairs (Warfarin+Aspirin severe, Warfarin+Ibuprofen moderate).\n  Uses 2.0 select() style.\n\nVerified end to end: scripts/seed.sh created 4 users, 5 meds, 2 interactions.\n\nTests (2 added): seed creates the expected medication+interaction counts, and\nmedication seeding is idempotent. Full suite: 244 passed.\n\nImplements TASKS 4.10.\nRefs: DESIGN 3, 5.4, 8, 9 (Phase 4)."
+      },
+      "files": [
+        "backend/app/db/seed.py",
+        "backend/tests/db/test_seed.py"
+      ],
+      "task_ids": ["4.10"],
+      "rule_refs": ["§5.4", "§8"],
+      "phase": 4,
+      "rationale": "Idempotent medication + interaction seed so the safety-checked prescribe flow is demoable.",
+      "depends_on": [44, 46]
+    },
+    {
+      "seq": 48,
+      "id": "c048",
+      "message": {
+        "subject": "feat(web): prescribe form on encounter + patient prescriptions list (D1, D5)",
+        "body": "Adds the Phase 4 web UI.\n\n- web/clinical.py: POST /clinical/encounters/{id}/prescriptions (HTMX — prescribe\n  via prescription_service, swap the prescriptions list partial; a §5.4 block\n  re-renders the partial with the error + proper status, and an interaction can\n  be retried with the override checkbox). GET /clinical/prescriptions (patient's\n  own list). encounter detail route now passes medications + prescriptions +\n  medications_by_id.\n- templates/prescriptions/: partials/list.html (with inline safety error),\n  mine.html; encounter detail gains a Prescriptions section + prescribe form\n  (medication select, dose, refills, override-interaction checkbox); patient\n  dashboard gains a 'My prescriptions' link; app.css rx styles.\n\nTests (web, 3): doctor prescribes via HTMX (partial), allergy block shows error\npartial (409), patient prescriptions page lists the rx. Full suite: 247 passed.\n\nImplements TASKS 4.11.\nRefs: DESIGN 7.3, 3 (D1, D5), 5.4, 7.6 (rule 7)."
+      },
+      "files": [
+        "backend/app/web/clinical.py",
+        "backend/app/web/templates/encounters/detail.html",
+        "backend/app/web/templates/prescriptions/partials/list.html",
+        "backend/app/web/templates/prescriptions/mine.html",
+        "backend/app/web/templates/dashboard/patient.html",
+        "backend/app/web/static/app.css",
+        "backend/tests/web/test_prescriptions_web.py"
+      ],
+      "task_ids": ["4.11"],
+      "rule_refs": ["§7.3", "§3", "§5.4", "§7.6"],
+      "phase": 4,
+      "rationale": "Web prescribe form (with safety-warning display + override) + patient prescriptions list.",
+      "depends_on": [46, 41]
+    },
+    {
+      "seq": 49,
+      "id": "c049",
+      "message": {
+        "subject": "test(prescriptions): Phase 4 exit-gate safety integration",
+        "body": "Adds the Phase 4 exit-gate integration test over the JSON API.\n\n- tests/api/test_prescription_integration.py:\n  * test_phase4_exit_gate: safe rx succeeds; an interaction (Aspirin vs the\n    patient's active Warfarin) is blocked 409 with reason 'interaction' and a\n    clear message, then proceeds with override_interaction=true; a controlled\n    substance (Oxycodone) with refills is capped 409 reason 'refill_cap'.\n  * test_allergy_block_is_absolute: an allergy match is refused 409 even with\n    override (non-overridable).\n\nAll green — no product changes. Full suite: 249 passed.\n\nImplements TASKS 4.12 and the Phase 4 exit gate.\nRefs: DESIGN 9 (Phase 4), 5.4."
+      },
+      "files": [
+        "backend/tests/api/test_prescription_integration.py"
+      ],
+      "task_ids": ["4.12"],
+      "rule_refs": ["§9", "§5.4"],
+      "phase": 4,
+      "rationale": "Exit-gate: safe rx succeeds; allergy/interaction/refill blocks with clear reasons; override for interactions only.",
+      "depends_on": [48]
+    },
+    {
+      "seq": 50,
+      "id": "c050",
+      "message": {
+        "subject": "docs(kb): author Phase 4 knowledge base (rule #4 + prescribe workflow)",
+        "body": "Completes the Phase 4 knowledge base.\n\n- knowledge-base/domain/business-rules.md: adds Rule #4 (prescription safety) —\n  the allergy/interaction/refill checks, WHY their severities differ (allergy\n  absolute vs interaction overridable vs refill cap), edge cases (allergy checked\n  first + name/class match, active-only interactions, blocks audited), enforcement\n  locations, and tests.\n- knowledge-base/workflows/prescribe.md: Mermaid sequence for the safety-gated\n  prescribe flow with all block branches + the override path.\n\nDocs-only; full suite unchanged at 249 passed.\n\nImplements TASKS 4.13.\nRefs: DESIGN 11, 5.4."
+      },
+      "files": [
+        "docs/knowledge-base/domain/business-rules.md",
+        "docs/knowledge-base/workflows/prescribe.md"
+      ],
+      "task_ids": ["4.13"],
+      "rule_refs": ["§11", "§5.4"],
+      "phase": 4,
+      "rationale": "Curated Phase 4 KB: rule #4 with severity rationale + prescribe workflow diagram.",
+      "depends_on": [49]
+    },
+    {
+      "seq": 51,
+      "id": "c051",
+      "message": {
+        "subject": "docs(kb): add ADRs 0001, 0002, 0004, 0005",
+        "body": "Begins Phase 5 KB finalization with the remaining architecture decision\nrecords (ADR-0003 auth was authored in Phase 1).\n\n- ADR-0001 no-Docker/SQLite: local-first rationale, Postgres opt-in, the SQLite\n  caveats + mitigations (batch migrations, tz coercion at the DAL).\n- ADR-0002 append-only clinical records: why edits/deletes are forbidden and\n  corrections are addenda (reversing-entry analogy); enforced in the service.\n- ADR-0004 layered architecture: the inward-pointing layers + 7 non-negotiable\n  rules, the pure-domain purity test, consequences + alternatives.\n- ADR-0005 audit strategy: service-layer (not middleware), append-only, atomic\n  with commit=True on failure paths, nullable actor / SET NULL FKs, admin-only\n  reads.\n\nDocs-only; full suite unchanged at 249 passed.\n\nImplements TASKS 5.3, 5.4, 5.6, 5.7.\nRefs: DESIGN 11, 1, 5.6, 5.7, 7.2, 7.6, 8."
+      },
+      "files": [
+        "docs/knowledge-base/adr/ADR-0001-no-docker-sqlite.md",
+        "docs/knowledge-base/adr/ADR-0002-append-only-clinical-records.md",
+        "docs/knowledge-base/adr/ADR-0004-layered-architecture.md",
+        "docs/knowledge-base/adr/ADR-0005-audit-strategy.md"
+      ],
+      "task_ids": ["5.3", "5.4", "5.6", "5.7"],
+      "rule_refs": ["§11", "§1", "§5.6", "§5.7", "§7.2", "§7.6", "§8"],
+      "phase": 5,
+      "rationale": "The four remaining ADRs (no-Docker/SQLite, append-only, layering, audit).",
+      "depends_on": [50]
+    },
+    {
+      "seq": 52,
+      "id": "c052",
+      "message": {
+        "subject": "docs(kb): add ERD, OpenAPI export + contract notes, register workflow, runbook",
+        "body": "Continues Phase 5 KB finalization.\n\n- knowledge-base/api/openapi.json: exported from the app (22 paths); README.md\n  adds contract conventions (auth, error envelope + stable codes table,\n  pagination, status codes) and the regenerate command.\n- knowledge-base/data/erd.md: Mermaid ERD of all 16 tables + rationale for the\n  non-obvious choices (shared-PK profiles, unique slot/appointment links,\n  polymorphic addenda, unordered interaction pairs, SET NULL audit FKs).\n- knowledge-base/workflows/register-and-login.md: Mermaid sequence for self-\n  registration, admin provisioning, login (uniform failure) + refresh.\n- knowledge-base/runbooks/setup-and-operations.md: setup/seed/reset/test/Postgres,\n  migration procedure, and the known gotchas (tz, vitals.flags false-diff,\n  bcrypt pin, audit-on-failure).\n\nDocs-only; full suite unchanged at 249 passed.\n\nImplements TASKS 5.11, 5.12, 5.14 and completes 5.13 (register diagram).\nRefs: DESIGN 11, 8, 7.6."
+      },
+      "files": [
+        "docs/knowledge-base/api/openapi.json",
+        "docs/knowledge-base/api/README.md",
+        "docs/knowledge-base/data/erd.md",
+        "docs/knowledge-base/workflows/register-and-login.md",
+        "docs/knowledge-base/runbooks/setup-and-operations.md"
+      ],
+      "task_ids": ["5.11", "5.12", "5.13", "5.14"],
+      "rule_refs": ["§11", "§8", "§7.6"],
+      "phase": 5,
+      "rationale": "ERD + OpenAPI export/notes + register workflow + operations runbook.",
+      "depends_on": [51]
+    },
+    {
+      "seq": 53,
+      "id": "c053",
+      "message": {
+        "subject": "docs(kb): add KNOWLEDGE-INDEX and AGENTS.md (Phase 5 complete)",
+        "body": "Adds the entry-point map that ties the whole knowledge base together, and the\nagent working guide — completing Phase 5.\n\n- knowledge-base/KNOWLEDGE-INDEX.md: 'read this first' map — read order, links to\n  all 8 business rules, glossary, access matrix, 5 ADRs, ERD, API contract, 5\n  workflow diagrams, runbook, and a source map of where behavior lives.\n- AGENTS.md (repo root): golden rules (layering, no ORM serialization, append-\n  only, audit, typed errors), the one-commit/ledger working rhythm + DoD,\n  commands, the migration procedure, and the gotchas list (tz, server_default\n  false-diffs, bcrypt pin, validation encoder, two-transport auth, coarse/fine\n  authz).\n\nDocs-only; full suite unchanged at 249 passed. KB is now complete and cross-\nlinked — Phase 5 exit gate met.\n\nImplements TASKS 5.1, 5.2 and the Phase 5 exit gate.\nRefs: DESIGN 11."
+      },
+      "files": [
+        "docs/knowledge-base/KNOWLEDGE-INDEX.md",
+        "AGENTS.md"
+      ],
+      "task_ids": ["5.1", "5.2"],
+      "rule_refs": ["§11"],
+      "phase": 5,
+      "rationale": "KNOWLEDGE-INDEX (the map an AI reads first) + AGENTS.md working guide; closes the Phase 5 exit gate.",
+      "depends_on": [52]
+    },
+    {
+      "seq": 54,
+      "id": "c054",
+      "message": {
+        "subject": "feat(db): seed a complete clinical journey (demoable on first run)",
+        "body": "Begins Phase 6 by enriching the seed so a fresh clone shows a full journey\nwithout manual setup.\n\n- app/db/seed.py: _seed_clinical_journey() books a COMPLETED appointment for the\n  demo patient with the demo doctor, opens an encounter, records vitals + a J06.9\n  diagnosis, and writes one active Amoxicillin prescription. Deterministic base\n  time (no wall-clock reads, which the workflow/runtime forbids anyway).\n  Idempotent: keyed on the demo patient already having an appointment.\n\nVerified end to end: scripts/seed.sh creates '1 clinical journey' on first run,\n'nothing to do' on the second.\n\nTests (1 added): the journey seeds exactly one appointment/encounter/diagnosis/\nprescription and does not duplicate on re-run. Full suite: 250 passed.\n\nImplements TASKS 6.2.\nRefs: DESIGN 9 (Phase 6), 3."
+      },
+      "files": [
+        "backend/app/db/seed.py",
+        "backend/tests/db/test_seed.py"
+      ],
+      "task_ids": ["6.2"],
+      "rule_refs": ["§9", "§3"],
+      "phase": 6,
+      "rationale": "Idempotent full clinical-journey seed so the app is demoable on first run.",
+      "depends_on": [47]
+    },
+    {
+      "seq": 55,
+      "id": "c055",
+      "message": {
+        "subject": "docs(kb): add rule-to-test traceability matrix",
+        "body": "Adds knowledge-base/domain/traceability.md mapping every DESIGN §5 rule (§5.1-\n§5.8) to its enforcement module and the named tests that pin it, across domain/\nservice/api/integration layers, plus the RBAC/access-matrix test coverage.\nVerified the referenced domain test counts by collection (9/11/8/7/9).\n\nDocs-only; full suite unchanged at 250 passed.\n\nImplements TASKS 6.1.\nRefs: DESIGN 10, 11, 5."
+      },
+      "files": [
+        "docs/knowledge-base/domain/traceability.md"
+      ],
+      "task_ids": ["6.1"],
+      "rule_refs": ["§10", "§11", "§5"],
+      "phase": 6,
+      "rationale": "Explicit §5-rule → test traceability matrix across all layers.",
+      "depends_on": [53]
+    },
+    {
+      "seq": 56,
+      "id": "c056",
+      "message": {
+        "subject": "test(web): cross-cutting web route sweep",
+        "body": "Adds tests/web/test_web_routes_sweep.py — a safety net over the whole server-\nrendered surface (no JS engine needed):\n- public pages (/, /login, /register) render HTML (200);\n- protected pages (/dashboard, /appointments/{book,mine}, /clinical/{history,\n  prescriptions}) redirect anonymous visitors to /login (303), parametrized;\n- landing nav shows login/register when logged out; a registered patient reaches\n  a dashboard with a logout control;\n- unknown page → 404; static assets (app.css, htmx.min.js) served.\n\n12 tests added, full suite: 262 passed.\n\nImplements TASKS 6.3.\nRefs: DESIGN 10, 7.3."
+      },
+      "files": [
+        "backend/tests/web/test_web_routes_sweep.py"
+      ],
+      "task_ids": ["6.3"],
+      "rule_refs": ["§10", "§7.3"],
+      "phase": 6,
+      "rationale": "Whole-surface web route sweep: public render, protected redirects, nav state, 404, static.",
+      "depends_on": [48]
+    },
+    {
+      "seq": 57,
+      "id": "c057",
+      "message": {
+        "subject": "docs: finalize README and rewrite stale PROJECT-BRIEF",
+        "body": "- README.md: adds the seeded demo-accounts table (all roles, password Passw0rd!),\n  a 'what you can do' v1 feature summary (accounts/RBAC, appointments, clinical\n  workflow, prescriptions, audit), and a pointer to the knowledge base.\n- PROJECT-BRIEF.md (in ~/shared/webapp/, OUTSIDE the repo root): rewritten from\n  the stale pre-pivot finance/inventory draft to describe HealthyVytals — the\n  hypothesis, domain, stack, architecture, status, and how to run.\n\nDocs-only; full suite unchanged at 262 passed.\n\nImplements TASKS 6.4, 6.5.\nRefs: DESIGN 9 (Phase 6), 11."
+      },
+      "files": [
+        "README.md",
+        "../PROJECT-BRIEF.md"
+      ],
+      "task_ids": ["6.4", "6.5"],
+      "rule_refs": ["§9", "§11"],
+      "phase": 6,
+      "rationale": "Finalized README (demo accounts + feature summary) and rewrote the stale PROJECT-BRIEF (note: ../PROJECT-BRIEF.md is outside repo_root — replay should skip it if not under version control, committing only README.md).",
+      "depends_on": [54]
+    },
+    {
+      "seq": 58,
+      "id": "c058",
+      "message": {
+        "subject": "fix(seed): use example.com demo emails; final e2e verification",
+        "body": "Final Phase 6 slice: end-to-end verification (6.6), which caught and fixed a\nreal bug.\n\nBug: seeded demo accounts used @healthyvytals.local, but Pydantic EmailStr\nrejects the reserved .local TLD — so the demo accounts the README told users to\nlog in with FAILED at /api/v1/auth/login (422) and on the web login. The seed\ntest missed it because it called auth_service.login directly, bypassing the\nEmailStr-validated request schema.\n\nFix: switch demo emails to @healthyvytals.example.com (RFC-2606 reserved, made\nfor demos) in seed.py, test_seed.py, README.md, the runbook, and PROJECT-BRIEF.\n\nVerification (6.6): fresh DB -> migrate -> seed -> app; confirmed all four roles\nlog in via the API, the seeded journey is visible (doctor calendar shows the\ncompleted appointment; patient sees 1 prescription + 1 encounter; nurse sees the\nward), and web landing + /docs serve. Full suite: 262 passed.\n\nImplements TASKS 6.6 and the project exit gate.\nRefs: DESIGN 9 (Verification), 3 (A3)."
+      },
+      "files": [
+        "backend/app/db/seed.py",
+        "backend/tests/db/test_seed.py",
+        "README.md",
+        "docs/knowledge-base/runbooks/setup-and-operations.md",
+        "../PROJECT-BRIEF.md"
+      ],
+      "task_ids": ["6.6"],
+      "rule_refs": ["§9", "§3"],
+      "phase": 6,
+      "rationale": "Final e2e verification; fixes demo emails that EmailStr rejected (.local) so seeded accounts actually log in.",
+      "depends_on": [57]
+    }
+  ]
+}

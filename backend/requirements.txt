@@ -1,0 +1,36 @@
+# HealthyVytals — backend dependencies (pinned for reproducible local setup).
+#
+# Install into a virtual environment:
+#     pip install -r backend/requirements.txt
+# The setup scripts (scripts/setup.*) do this for you.
+#
+# Pinned to compatible-release (~=) ranges: patch/minor updates are allowed,
+# breaking major bumps are not, so a fresh clone reproduces a working stack.
+
+# --- Web framework & ASGI server ---
+fastapi~=0.115.0            # web framework: routing, DI, OpenAPI generation
+uvicorn[standard]~=0.32.0   # ASGI server (the single process on :8000)
+
+# --- Validation & settings ---
+pydantic[email]~=2.9.0      # request/response schemas + EmailStr validation
+pydantic-settings~=2.6.0    # env-driven Settings (core/config.py)
+
+# --- Persistence ---
+SQLAlchemy~=2.0.35          # ORM (models/) + engine/session (db/)
+alembic~=1.13.0             # schema migrations (decision §12.5)
+
+# --- Server-rendered UI (decision §12.1: Jinja2 + HTMX, no Node) ---
+jinja2~=3.1.4               # HTML templating for the web/ layer
+python-multipart~=0.0.12    # parse HTML form POST bodies (login, booking, ...)
+itsdangerous~=2.2.0         # signing for cookie-based browser sessions
+
+# --- Auth / security ---
+python-jose[cryptography]~=3.3.0  # JWT create/decode (access + refresh tokens)
+passlib[bcrypt]~=1.7.4            # password hashing (bcrypt)
+# passlib 1.7.4 reads bcrypt.__about__.__version__, which bcrypt removed in 4.1.
+# Pin to the 4.0.x line passlib supports until passlib ships a compatible release.
+bcrypt~=4.0.1
+
+# --- Testing (dev; imported only by tests/) ---
+pytest~=8.3.0              # test runner
+httpx~=0.27.0             # TestClient transport for API/web integration tests

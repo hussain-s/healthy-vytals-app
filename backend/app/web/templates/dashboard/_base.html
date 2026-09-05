@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{#
+  Shared shell for every role dashboard: a greeting, a logout control, and a
+  content block each role fills in. Keeps the four dashboards consistent and DRY.
+#}
+
+{% block nav %}
+  <span class="nav-user">{{ user.email }} ({{ user.role.value }})</span>
+  <form method="post" action="{{ url_for('web-logout') }}" class="nav-logout">
+    <button type="submit" class="linklike">Log out</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+  <section class="dashboard">
+    <h1>{% block dash_title %}Dashboard{% endblock %}</h1>
+    {% block dash_content %}{% endblock %}
+  </section>
+{% endblock %}
