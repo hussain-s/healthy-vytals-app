@@ -1,0 +1,43 @@
+{#
+  The patient's appointment list as a swappable partial (HTMX target for cancel).
+  Rows carry slot time + doctor; a cancel button shows only while the status still
+  allows it (mirrors the §5.1 state machine via the `cancellable` set).
+#}
+{% if error %}
+  <p class="form-error" role="alert">{{ error }}</p>
+{% endif %}
+
+{% if not appointments %}
+  <p class="dash-note">You have no appointments yet.
+    <a href="{{ url_for('web-book') }}">Book one</a>.</p>
+{% else %}
+  <table class="appt-table">
+    <thead>
+      <tr><th>When</th><th>Doctor</th><th>Status</th><th>Reason</th><th></th></tr>
+    </thead>
+    <tbody id="appointment-rows">
+      {% for appt in appointments %}
+        <tr>
+          <td class="slot-time">{{ appt.start_at.strftime("%a %d %b %Y, %H:%M") }}</td>
+          <td>{{ appt.doctor_email }}</td>
+          <td>
+            <span class="status-pill status-{{ appt.status.value }}">{{ appt.status.value }}</span>
+            {% if appt.cancelled_late %}<span class="dash-note">(late)</span>{% endif %}
+          </td>
+          <td>{{ appt.reason or "—" }}</td>
+          <td>
+            {% if appt.status.value in cancellable %}
+              <button
+                class="secondary outline btn-sm"
+                hx-post="{{ url_for('web-appointment-cancel', appointment_id=appt.id) }}"
+                hx-target="#appointment-list"
+                hx-swap="innerHTML"
+                hx-confirm="Cancel this appointment?"
+              >Cancel</button>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}

@@ -1,0 +1,26 @@
+{#
+  HTMX result of the AI vitals triage assistant (§14, Rule #11). Swapped into
+  #vitals-assessment on the vitals-entry page. Advisory decision-support only —
+  the deterministic age-based rule is the source of truth; a clinician decides.
+#}
+<article aria-live="polite">
+  <header>
+    <strong>AI triage assist</strong>
+    <span class="badge urgency-{{ assessment.urgency.value }}">
+      {{ assessment.urgency.value | capitalize }}
+    </span>
+  </header>
+
+  <p>{{ assessment.summary }}</p>
+
+  {% if assessment.red_flags %}
+    <p class="flag">⚠ {{ assessment.red_flags | join(", ") }}</p>
+  {% endif %}
+
+  <p><strong>Suggested next step:</strong> {{ assessment.recommended_action }}</p>
+
+  <footer class="dash-note">
+    Advisory only — not a diagnosis. Model confidence
+    {{ "%.0f%%" | format(assessment.confidence * 100) }}. A clinician decides.
+  </footer>
+</article>

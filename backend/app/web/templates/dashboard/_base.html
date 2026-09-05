@@ -43,7 +43,12 @@
       <nav>
         <ul>
           {% for route, label in nav_by_role.get(user.role.value, []) %}
-            <li><a href="{{ url_for(route) }}">{{ label }}</a></li>
+            {% set href = url_for(route) | string %}
+            {# Mark the current section active (exact match, or section prefix). #}
+            {% set path = request.url.path %}
+            {% set is_active = (path == href) or
+               (href not in ("/dashboard", "/") and path.startswith(href)) %}
+            <li><a href="{{ href }}"{% if is_active %} aria-current="page"{% endif %}>{{ label }}</a></li>
           {% endfor %}
         </ul>
       </nav>

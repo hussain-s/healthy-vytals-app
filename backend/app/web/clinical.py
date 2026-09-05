@@ -30,6 +30,7 @@ from app.services import (
     clinical_service,
     lab_service,
     prescription_service,
+    vitals_assistant_service,
 )
 from app.web.deps import require_web_user
 from app.web.templates import templates
@@ -150,7 +151,41 @@ def vitals_submit(
         session, user.id, appointment_id, reading
     )
     return templates.TemplateResponse(
-        request, "encounters/partials/vitals_result.html", {"vitals": vitals},
+        request, "encounters/partials/vitals_result.html",
+        {"vitals": vitals, "appointment_id": appointment_id},
+    )
+
+
+@router.post("/appointments/{appointment_id}/vitals-assessment",
+             response_class=HTMLResponse, name="web-vitals-assessment")
+def vitals_assessment(
+    request: Request,
+    appointment_id: int,
+    user: User = Depends(require_web_user),
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    """Nurse triage: AI-assisted read of the just-recorded vitals (HTMX partial).
+
+    Advisory decision-support only (§14, Rule #11): the deterministic age-based
+    rule stays the source of truth; the model explains its flags. Uses the
+    configured provider — the offline stub by default, or a real model when an API
+    key is set. Renders a small panel swapped in beside the saved-vitals result.
+    """
+    if user.role is not Role.NURSE:
+        raise PermissionDenied("Only nurses use the triage assistant here")
+
+    encounter = EncounterRepository(session).get_by_appointment(appointment_id)
+    if encounter is None:
+        from app.core.exceptions import NotFound
+
+        raise NotFound("Record vitals before requesting an assessment")
+
+    assessment = vitals_assistant_service.assess_encounter_vitals(
+        session, staff=user, encounter_id=encounter.id
+    )
+    return templates.TemplateResponse(
+        request, "encounters/partials/vitals_assessment.html",
+        {"assessment": assessment},
     )
 
 

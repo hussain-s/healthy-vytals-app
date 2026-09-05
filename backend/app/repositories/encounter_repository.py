@@ -79,6 +79,22 @@ class EncounterRepository(Repository[Encounter]):
             ).all()
         )
 
+    def vitals_for_patient(self, patient_id: int) -> list[Vitals]:
+        """All vitals rows for a patient across encounters, oldest-first (M10).
+
+        Joined via the owning encounter's ``patient_id`` and ordered by record time
+        so a caller can plot a trend. Read-only; visibility/consent scoping is the
+        service's responsibility (mirrors history reads, §5.3/§5.8).
+        """
+        return list(
+            self.session.scalars(
+                select(Vitals)
+                .join(Encounter, Vitals.encounter_id == Encounter.id)
+                .where(Encounter.patient_id == patient_id)
+                .order_by(Vitals.created_at, Vitals.id)
+            ).all()
+        )
+
     def diagnoses_for_encounter(self, encounter_id: int) -> list[Diagnosis]:
         return list(
             self.session.scalars(

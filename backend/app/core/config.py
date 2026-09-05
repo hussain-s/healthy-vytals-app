@@ -81,6 +81,63 @@ class Settings(BaseSettings):
         description="Cancellations inside this window are allowed but flagged late (§5.2).",
     )
 
+    # --- LLM component layer (DESIGN §14, ADR-0006) ---
+    # The default provider is a deterministic offline STUB, so the app and its
+    # full test suite run on a fresh clone with no API key and no vendor SDK —
+    # exactly mirroring the SQLite-default / Postgres-opt-in choice (ADR-0001).
+    # Point HV_LLM_PROVIDER at "anthropic"/"openai" (and set HV_LLM_API_KEY) to
+    # use a real model; those SDKs are imported lazily only when selected.
+    llm_provider: str = Field(
+        default="stub",
+        description='LLM backend: "stub" (default, offline/deterministic), '
+        '"anthropic", or "openai". Real providers need HV_LLM_API_KEY + their SDK.',
+    )
+    llm_api_key: str = Field(
+        default="",
+        description="API key for the selected real provider. Unused by the stub.",
+    )
+    llm_model_reasoning: str = Field(
+        default="stub-reasoning",
+        description='Model id for the "reasoning" tier (capable/expensive) — hard '
+        "clinical-support analysis. Override per provider, e.g. claude-opus-4-1.",
+    )
+    llm_model_triage: str = Field(
+        default="stub-triage",
+        description='Model id for the "triage" tier (cheap/fast) — classification '
+        "and simple calls. Override per provider, e.g. claude-haiku-4-5.",
+    )
+    llm_fallback_model: str = Field(
+        default="",
+        description="Optional secondary model tried transparently if the primary "
+        "exhausts retries or refuses. Empty disables the fallback chain.",
+    )
+    llm_timeout_s: float = Field(
+        default=30.0, gt=0, description="Per-request timeout for an LLM call, seconds."
+    )
+    llm_max_retries: int = Field(
+        default=2,
+        ge=0,
+        description="Retry attempts per model for transient/validation failures "
+        "(2 = up to three tries) before falling back or failing.",
+    )
+    llm_cache_enabled: bool = Field(
+        default=True,
+        description="When true, identical inputs return a cached result "
+        "(effective determinism, DESIGN §14).",
+    )
+
+    def model_for_tier(self, tier: str) -> str:
+        """Return the configured model id for a routing tier (DESIGN §14).
+
+        Routing is an architectural choice: cheap/fast for triage, capable for
+        reasoning. Unknown tiers fall back to the reasoning model rather than
+        guessing, so a typo degrades safely instead of silently mis-routing.
+        """
+        return {
+            "triage": self.llm_model_triage,
+            "reasoning": self.llm_model_reasoning,
+        }.get(tier, self.llm_model_reasoning)
+
     @property
     def is_production(self) -> bool:
         """True when running in a production-labelled environment."""

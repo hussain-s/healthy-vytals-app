@@ -94,3 +94,38 @@ def test_doctor_cannot_open_patient_booking_page(
     client.post("/login", data={"email": "doc2@example.com", "password": PW})
     resp = client.get("/appointments/book")
     assert resp.status_code == 403
+
+
+def test_my_appointments_shows_time_doctor_and_cancel(
+    client: TestClient, doctor_with_slot: int
+) -> None:
+    """The improved list shows the slot time + doctor and offers a cancel button."""
+    _login_patient(client)
+    client.post("/appointments/book", data={"slot_id": doctor_with_slot, "reason": "cough"})
+    resp = client.get("/appointments/mine")
+    assert resp.status_code == 200
+    body = resp.text
+    assert "doc@example.com" in body            # doctor shown
+    assert "2026" in body                        # formatted slot time shown
+    assert "Cancel" in body                      # cancellable while requested
+
+
+def test_cancel_appointment_updates_list(
+    client: TestClient, doctor_with_slot: int
+) -> None:
+    """Cancelling swaps in the list partial with the appointment now cancelled."""
+    _login_patient(client)
+    book = client.post(
+        "/appointments/book", data={"slot_id": doctor_with_slot}
+    )
+    # Recover the appointment id from the confirmation partial.
+    import re
+
+    m = re.search(r"Appointment #(\d+)", book.text)
+    assert m, book.text
+    appt_id = int(m.group(1))
+    resp = client.post(f"/appointments/{appt_id}/cancel")
+    assert resp.status_code == 200
+    assert "cancelled" in resp.text.lower()
+    # Once cancelled, the row no longer offers a Cancel button.
+    assert "Cancel</button>" not in resp.text

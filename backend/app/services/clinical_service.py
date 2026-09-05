@@ -254,3 +254,58 @@ def get_patient_history(
             consent_shared=e.consent_shared,
         )
     ]
+
+
+def get_vitals_series(
+    session: Session, viewer_id: int, viewer_role: Role, patient_id: int
+) -> list[Vitals]:
+    """Return a patient's vitals over time for trend charts (M10; §5.3/§5.8).
+
+    Uses the **same authorization as history reads** (`can_view_patient_history`):
+    a patient sees only their own, a doctor needs a treating relationship, a nurse
+    may read, an admin may not. A denied read is audited (`vitals_series.read_denied`)
+    and raises 403; an allowed read is audited (`vitals_series.read`). Results are
+    filtered by the per-encounter consent gate (§5.8), so sensitive encounters stay
+    hidden from staff without shared consent — identical to history visibility.
+    """
+    repo = EncounterRepository(session)
+    treating = (
+        repo.has_treating_relationship(viewer_id, patient_id)
+        if viewer_role is Role.DOCTOR
+        else False
+    )
+    if not can_view_patient_history(viewer_role, viewer_id, patient_id, treating):
+        record_audit(
+            session,
+            action="vitals_series.read_denied",
+            actor_id=viewer_id,
+            resource_type="vitals_series",
+            patient_id=patient_id,
+            commit=True,
+        )
+        raise PermissionDenied("You may not view this patient's vitals")
+
+    record_audit(
+        session,
+        action="vitals_series.read",
+        actor_id=viewer_id,
+        resource_type="vitals_series",
+        patient_id=patient_id,
+    )
+    # Only include vitals from encounters the viewer may see (consent gate, §5.8).
+    visible_encounter_ids = {
+        e.id
+        for e in repo.list_for_patient(patient_id)
+        if is_encounter_visible(
+            viewer_role,
+            viewer_id,
+            patient_id,
+            sensitive=e.sensitive,
+            consent_shared=e.consent_shared,
+        )
+    }
+    return [
+        v
+        for v in repo.vitals_for_patient(patient_id)
+        if v.encounter_id in visible_encounter_ids
+    ]

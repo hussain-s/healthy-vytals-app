@@ -48,6 +48,39 @@ class VitalsOut(ORMModel):
     flags: str
 
 
+class VitalsPoint(BaseModel):
+    """One vitals reading as a time-stamped point for trend charts (M10)."""
+
+    recorded_at: datetime
+    heart_rate: int | None = None
+    resp_rate: int | None = None
+    systolic_bp: int | None = None
+    temp_c: float | None = None
+    spo2: int | None = None
+
+
+class VitalsSeriesOut(BaseModel):
+    """A patient's vitals over time — the payload the trend chart plots (M10)."""
+
+    patient_id: int
+    points: list[VitalsPoint]
+
+
+class VitalsAssessmentOut(BaseModel):
+    """API response for the AI vitals assistant (§14, Rule #11).
+
+    A plain wire model mirroring ``core/llm/vitals_schema.VitalsAssessment`` so the
+    LLM output contract is not leaked directly to clients (same discipline as never
+    serializing ORM objects). ``urgency`` is serialized as its string value.
+    """
+
+    summary: str
+    urgency: str
+    red_flags: list[str]
+    recommended_action: str
+    confidence: float
+
+
 class DiagnosisCreate(BaseModel):
     icd_code: str = Field(min_length=1, max_length=16)
     description: str = Field(min_length=1, max_length=1000)

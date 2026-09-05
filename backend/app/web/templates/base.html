@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="{{ url_for('web-static', path='app.css') }}" />
     <!-- HTMX is vendored (no CDN, no Node). Enables partial page updates. -->
     <script src="{{ url_for('web-static', path='htmx.min.js') }}" defer></script>
+    {# Per-page head additions (e.g. Chart.js on pages that render charts). #}
+    {% block head_extra %}{% endblock %}
   </head>
   <body>
     {% block body %}

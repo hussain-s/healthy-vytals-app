@@ -16,4 +16,17 @@
   {% else %}
     <p class="status-ok">All recorded values within normal range for age.</p>
   {% endif %}
+
+  {% if appointment_id %}
+    <button
+      class="secondary"
+      hx-post="{{ url_for('web-vitals-assessment', appointment_id=appointment_id) }}"
+      hx-target="#vitals-assessment"
+      hx-swap="innerHTML"
+      hx-disabled-elt="this"
+    >
+      Get AI triage assist
+    </button>
+    <div id="vitals-assessment"></div>
+  {% endif %}
 </article>

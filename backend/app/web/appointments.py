@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppError
 from app.core.roles import Role
 from app.db.session import get_session
+from app.domain.appointment_state import Transition
 from app.models.user import User
 from app.repositories.appointment_repository import AppointmentRepository, SlotRepository
 from app.repositories.user_repository import UserRepository
@@ -107,10 +108,44 @@ def my_appointments(
     patient: User = Depends(_require_patient),
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
-    """List the patient's own appointments."""
-    appointments = AppointmentRepository(session).list_for_patient(patient.id)
+    """List the patient's own appointments with slot times and doctor (B-series)."""
+    appointments = AppointmentRepository(session).scheduled_for_patient(patient.id)
     return templates.TemplateResponse(
         request,
         "appointments/mine.html",
-        {"user": patient, "appointments": appointments},
+        {"user": patient, "appointments": appointments, "cancellable": _CANCELLABLE},
+    )
+
+
+# Statuses from which a patient may still cancel (mirrors the §5.1 state machine).
+_CANCELLABLE = {"requested", "confirmed", "checked_in"}
+
+
+@router.post("/{appointment_id}/cancel", response_class=HTMLResponse,
+             name="web-appointment-cancel")
+def cancel_appointment(
+    request: Request,
+    appointment_id: int,
+    patient: User = Depends(_require_patient),
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    """Cancel one of the patient's appointments and re-render their list (B4).
+
+    Delegates to ``appointment_service.change_status`` with the CANCEL transition,
+    which enforces ownership + the state machine, frees the slot, flags a late
+    cancellation, and audits. Re-renders the whole list partial so the row's new
+    status (and freed slot) shows immediately via HTMX.
+    """
+    error: str | None = None
+    try:
+        appointment_service.change_status(
+            session, patient.id, patient.role, appointment_id, Transition.CANCEL
+        )
+    except AppError as exc:
+        error = exc.message
+    appointments = AppointmentRepository(session).scheduled_for_patient(patient.id)
+    return templates.TemplateResponse(
+        request,
+        "appointments/partials/appointment_list.html",
+        {"appointments": appointments, "cancellable": _CANCELLABLE, "error": error},
     )

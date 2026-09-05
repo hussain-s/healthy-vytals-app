@@ -3,8 +3,21 @@
 {% block title %}My medical history — HealthyVytals{% endblock %}
 {% block dash_title %}My medical history{% endblock %}
 
+{% block head_extra %}
+  {# Chart.js is vendored (ADR-0007); loaded only on pages that draw charts. #}
+  <script src="{{ url_for('web-static', path='chart.umd.min.js') }}" defer></script>
+{% endblock %}
+
 {% block dash_content %}
   <p><a href="{{ url_for('web-dashboard') }}">&larr; Back to dashboard</a></p>
+
+  <section class="chart-card" aria-label="Vitals trends over time">
+    <h2>Vitals trends</h2>
+    <p class="dash-note">How your recorded vitals have changed over time.</p>
+    <div id="vitals-chart-empty" hidden><p class="dash-note">Not enough data to chart yet.</p></div>
+    <div class="chart-frame"><canvas id="vitals-chart"
+      data-series-url="/api/v1/patients/{{ user.id }}/vitals-series"></canvas></div>
+  </section>
 
   {% if not rows %}
     <p class="dash-note">No encounters recorded yet.</p>
@@ -41,4 +54,55 @@
       </section>
     {% endfor %}
   {% endif %}
+
+  <script>
+    // Vitals trend chart (ADR-0007). Progressive enhancement: the raw vitals are
+    // listed above, so if the fetch fails or Chart.js is unavailable we simply
+    // show an empty-state note and never hide clinical data.
+    (function () {
+      const canvas = document.getElementById("vitals-chart");
+      if (!canvas || typeof Chart === "undefined") { return; }
+      const empty = document.getElementById("vitals-chart-empty");
+      const showEmpty = () => {
+        if (empty) empty.hidden = false;
+        canvas.closest(".chart-frame").hidden = true;
+      };
+      fetch(canvas.dataset.seriesUrl, { headers: { "Accept": "application/json" } })
+        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+        .then((data) => {
+          const pts = (data && data.points) || [];
+          if (pts.length < 2) { showEmpty(); return; }
+          const labels = pts.map((p) => new Date(p.recorded_at).toLocaleDateString());
+          const series = [
+            { key: "heart_rate", label: "Heart rate (bpm)", color: "#dc2626" },
+            { key: "systolic_bp", label: "Systolic BP (mmHg)", color: "#0f766e" },
+            { key: "spo2", label: "SpO₂ (%)", color: "#2563eb" },
+            { key: "resp_rate", label: "Resp rate (/min)", color: "#d97706" },
+            { key: "temp_c", label: "Temp (°C)", color: "#7c3aed" },
+          ];
+          const datasets = series
+            .filter((s) => pts.some((p) => p[s.key] !== null && p[s.key] !== undefined))
+            .map((s) => ({
+              label: s.label,
+              data: pts.map((p) => p[s.key]),
+              borderColor: s.color,
+              backgroundColor: s.color,
+              spanGaps: true,
+              tension: 0.25,
+            }));
+          if (!datasets.length) { showEmpty(); return; }
+          new Chart(canvas, {
+            type: "line",
+            data: { labels: labels, datasets: datasets },
+            options: {
+              responsive: true,
+              interaction: { mode: "index", intersect: false },
+              plugins: { legend: { position: "bottom" } },
+              scales: { y: { beginAtZero: false } },
+            },
+          });
+        })
+        .catch(showEmpty);
+    })();
+  </script>
 {% endblock %}

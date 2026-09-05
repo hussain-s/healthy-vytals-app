@@ -2,19 +2,20 @@
 
 {% block title %}Book an appointment — HealthyVytals{% endblock %}
 {% block dash_title %}Book an appointment{% endblock %}
+{% block dash_subtitle %}<p>Choose an open time with an available doctor.</p>{% endblock %}
 
 {% block dash_content %}
-  <p><a href="{{ url_for('web-dashboard') }}">&larr; Back to dashboard</a></p>
-
   {# HTMX target: booking results are swapped in here without a page reload. #}
   <div id="book-result" aria-live="polite"></div>
 
   {% if not doctors %}
-    <p class="dash-note">No open slots are available right now. Please check back later.</p>
+    <article class="empty-state">
+      <p class="dash-note">No open slots are available right now. Please check back later.</p>
+    </article>
   {% else %}
     {% for entry in doctors %}
-      <section class="doctor-slots">
-        <h2>{{ entry.doctor.email }}</h2>
+      <article class="doctor-slots">
+        <header><strong>{{ entry.doctor.email }}</strong></header>
         <ul class="slot-list">
           {% for slot in entry.slots %}
             <li>
@@ -24,14 +25,16 @@
                 hx-swap="innerHTML"
               >
                 <input type="hidden" name="slot_id" value="{{ slot.id }}" />
-                <span class="slot-time">{{ slot.start_at }} → {{ slot.end_at }}</span>
+                <span class="slot-time">
+                  {{ slot.start_at.strftime("%a %d %b, %H:%M") }}–{{ slot.end_at.strftime("%H:%M") }}
+                </span>
                 <input type="text" name="reason" placeholder="Reason (optional)" />
-                <button type="submit">Book</button>
+                <button type="submit" class="btn-sm">Book</button>
               </form>
             </li>
           {% endfor %}
         </ul>
-      </section>
+      </article>
     {% endfor %}
   {% endif %}
 {% endblock %}

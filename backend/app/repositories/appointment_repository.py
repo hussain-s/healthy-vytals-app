@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.domain.appointment_state import AppointmentStatus
 from app.domain.scheduling_rules import TimeWindow
@@ -109,20 +109,37 @@ class AppointmentRepository(Repository[Appointment]):
         """Return all appointments with slot time + patient email (nurse ward board)."""
         return self._scheduled(None)
 
+    def scheduled_for_patient(self, patient_id: int) -> list[dict]:
+        """Return a patient's appointments with slot time, by start (patient list).
+
+        Display-oriented join like :meth:`scheduled_for_doctor`, so the patient's
+        "My appointments" screen can show *when* each visit is and its doctor,
+        without lazy-loading ORM relationships in the template.
+        """
+        return self._scheduled(Appointment.patient_id == patient_id)
+
     def _scheduled(self, where) -> list[dict]:
+        # Alias User twice so a single row carries both the patient's and the
+        # doctor's email — the doctor view wants the patient, the patient view
+        # wants the doctor, and the nurse board wants both.
+        patient_user = aliased(User)
+        doctor_user = aliased(User)
         stmt = (
             select(
                 Appointment.id,
                 Appointment.status,
                 Appointment.reason,
+                Appointment.cancelled_late,
                 Appointment.patient_id,
                 Appointment.doctor_id,
                 AvailabilitySlot.start_at,
                 AvailabilitySlot.end_at,
-                User.email.label("patient_email"),
+                patient_user.email.label("patient_email"),
+                doctor_user.email.label("doctor_email"),
             )
             .join(AvailabilitySlot, Appointment.slot_id == AvailabilitySlot.id)
-            .join(User, Appointment.patient_id == User.id)
+            .join(patient_user, Appointment.patient_id == patient_user.id)
+            .join(doctor_user, Appointment.doctor_id == doctor_user.id)
         )
         if where is not None:
             stmt = stmt.where(where)
@@ -132,11 +149,13 @@ class AppointmentRepository(Repository[Appointment]):
                 "id": r.id,
                 "status": r.status,
                 "reason": r.reason,
+                "cancelled_late": r.cancelled_late,
                 "patient_id": r.patient_id,
                 "doctor_id": r.doctor_id,
                 "start_at": _as_utc(r.start_at),
                 "end_at": _as_utc(r.end_at),
                 "patient_email": r.patient_email,
+                "doctor_email": r.doctor_email,
             }
             for r in self.session.execute(stmt)
         ]

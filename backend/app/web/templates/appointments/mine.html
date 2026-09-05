@@ -2,27 +2,13 @@
 
 {% block title %}My appointments — HealthyVytals{% endblock %}
 {% block dash_title %}My appointments{% endblock %}
+{% block dash_subtitle %}<p>Your upcoming and past visits.</p>{% endblock %}
 
 {% block dash_content %}
-  <p><a href="{{ url_for('web-dashboard') }}">&larr; Back to dashboard</a></p>
+  <p><a href="{{ url_for('web-book') }}" role="button" class="btn-sm">+ Book an appointment</a></p>
 
-  {% if not appointments %}
-    <p class="dash-note">You have no appointments yet.
-      <a href="{{ url_for('web-book') }}">Book one</a>.</p>
-  {% else %}
-    <table class="appt-table">
-      <thead>
-        <tr><th>#</th><th>Status</th><th>Reason</th></tr>
-      </thead>
-      <tbody>
-        {% for appt in appointments %}
-          <tr>
-            <td>{{ appt.id }}</td>
-            <td>{{ appt.status.value }}{% if appt.cancelled_late %} (late){% endif %}</td>
-            <td>{{ appt.reason or "—" }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% endif %}
+  {# The list is a partial so cancelling can swap just this region via HTMX. #}
+  <div id="appointment-list" aria-live="polite">
+    {% include "appointments/partials/appointment_list.html" %}
+  </div>
 {% endblock %}

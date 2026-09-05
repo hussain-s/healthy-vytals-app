@@ -18,6 +18,7 @@ from app.api.v1 import (
     health,
     labs,
     messages,
+    patients,
     prescriptions,
     users,
 )
@@ -31,6 +32,7 @@ v1_router.include_router(auth.router)
 v1_router.include_router(users.router)
 v1_router.include_router(appointments.router)
 v1_router.include_router(encounters.router)
+v1_router.include_router(patients.router)
 v1_router.include_router(prescriptions.router)
 v1_router.include_router(labs.router)
 v1_router.include_router(messages.router)
