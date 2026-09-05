@@ -3,8 +3,8 @@
 {% block title %}HealthyVytals — Welcome{% endblock %}
 
 {% block nav %}
-  <a href="{{ url_for('web-login') }}">Log in</a>
-  <a href="{{ url_for('web-register') }}">Register</a>
+  <li><a href="{{ url_for('web-login') }}">Log in</a></li>
+  <li><a href="{{ url_for('web-register') }}" role="button">Register</a></li>
 {% endblock %}
 
 {% block content %}
@@ -13,6 +13,10 @@
     <p class="tagline">
       A local-first medical portal for patients, nurses, doctors, and clinic admins.
     </p>
+    <p>
+      <a href="{{ url_for('web-register') }}" role="button">Get started</a>
+      <a href="{{ url_for('web-login') }}" role="button" class="secondary outline">Log in</a>
+    </p>
 
     <!--
       HTMX smoke test: this button issues an AJAX GET to a server-rendered
@@ -20,6 +24,7 @@
       reload. It proves the Jinja2 + HTMX stack is wired end to end.
     -->
     <button
+      class="outline"
       hx-get="{{ url_for('web-status') }}"
       hx-target="#status"
       hx-swap="innerHTML"
@@ -27,8 +32,6 @@
       Check system status
     </button>
 
-    <div id="status" class="status-slot" aria-live="polite">
-      <!-- Server-rendered partial is swapped in here. -->
-    </div>
+    <div id="status" aria-live="polite"></div>
   </section>
 {% endblock %}

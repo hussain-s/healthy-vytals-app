@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.domain.appointment_state import AppointmentStatus
 from app.domain.scheduling_rules import TimeWindow
 from app.models.scheduling import Appointment, AvailabilitySlot
+from app.models.user import User
 from app.repositories.base import Repository
 
 # Appointment states that still occupy a slot for conflict purposes. Cancelled,
@@ -95,6 +96,50 @@ class AppointmentRepository(Repository[Appointment]):
     def list_all(self) -> list[Appointment]:
         """Return every appointment (the v1 single-ward nurse schedule, story B5)."""
         return list(self.session.scalars(select(Appointment).order_by(Appointment.id)).all())
+
+    def scheduled_for_doctor(self, doctor_id: int) -> list[dict]:
+        """Return a doctor's appointments with slot time + patient email, by start.
+
+        A display-oriented join for the doctor's worklist. Returns plain dicts
+        (view rows), not ORM objects, so the web layer renders without lazy loads.
+        """
+        return self._scheduled(Appointment.doctor_id == doctor_id)
+
+    def scheduled_all(self) -> list[dict]:
+        """Return all appointments with slot time + patient email (nurse ward board)."""
+        return self._scheduled(None)
+
+    def _scheduled(self, where) -> list[dict]:
+        stmt = (
+            select(
+                Appointment.id,
+                Appointment.status,
+                Appointment.reason,
+                Appointment.patient_id,
+                Appointment.doctor_id,
+                AvailabilitySlot.start_at,
+                AvailabilitySlot.end_at,
+                User.email.label("patient_email"),
+            )
+            .join(AvailabilitySlot, Appointment.slot_id == AvailabilitySlot.id)
+            .join(User, Appointment.patient_id == User.id)
+        )
+        if where is not None:
+            stmt = stmt.where(where)
+        stmt = stmt.order_by(AvailabilitySlot.start_at)
+        return [
+            {
+                "id": r.id,
+                "status": r.status,
+                "reason": r.reason,
+                "patient_id": r.patient_id,
+                "doctor_id": r.doctor_id,
+                "start_at": _as_utc(r.start_at),
+                "end_at": _as_utc(r.end_at),
+                "patient_email": r.patient_email,
+            }
+            for r in self.session.execute(stmt)
+        ]
 
     def active_windows_for_doctor(
         self, doctor_id: int, exclude_appointment_id: int | None = None

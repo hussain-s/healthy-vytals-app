@@ -1,0 +1,23 @@
+{% extends "dashboard/_base.html" %}
+
+{% block title %}Conversation — HealthyVytals{% endblock %}
+{% block dash_title %}Conversation with {{ counterparty.email if counterparty else "Unknown" }}{% endblock %}
+{% block dash_subtitle %}{% if thread.subject %}<p>{{ thread.subject }}</p>{% endif %}{% endblock %}
+
+{% block dash_content %}
+  <p><a href="{{ url_for('web-messages') }}">&larr; Back to messages</a></p>
+
+  <div id="message-list">
+    {% include "messages/partials/message_list.html" %}
+  </div>
+
+  <form
+    hx-post="{{ url_for('web-thread-reply', thread_id=thread.id) }}"
+    hx-target="#message-list"
+    hx-swap="innerHTML"
+    hx-on::after-request="this.reset()"
+  >
+    <textarea name="body" placeholder="Write a reply…" required></textarea>
+    <button type="submit">Reply</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,19 @@
+{#
+  HTMX result of recording vitals: confirms the saved reading and shows any
+  age-based out-of-range flags. Swapped into #vitals-result on the form page.
+#}
+<article>
+  <header><strong>Vitals recorded</strong> (encounter #{{ vitals.encounter_id }})</header>
+  <ul>
+    <li>Heart rate: {{ vitals.heart_rate if vitals.heart_rate is not none else "—" }} bpm</li>
+    <li>Resp rate: {{ vitals.resp_rate if vitals.resp_rate is not none else "—" }} /min</li>
+    <li>Systolic BP: {{ vitals.systolic_bp if vitals.systolic_bp is not none else "—" }} mmHg</li>
+    <li>Temperature: {{ vitals.temp_c if vitals.temp_c is not none else "—" }} °C</li>
+    <li>SpO₂: {{ vitals.spo2 if vitals.spo2 is not none else "—" }} %</li>
+  </ul>
+  {% if vitals.flags %}
+    <p class="flag">⚠ Out of range: {{ vitals.flags }}</p>
+  {% else %}
+    <p class="status-ok">All recorded values within normal range for age.</p>
+  {% endif %}
+</article>

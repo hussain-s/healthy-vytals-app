@@ -1,0 +1,39 @@
+{% extends "dashboard/_base.html" %}
+
+{% block title %}Lab queue — HealthyVytals{% endblock %}
+{% block dash_title %}Lab result queue{% endblock %}
+{% block dash_subtitle %}<p>Orders awaiting results.</p>{% endblock %}
+
+{% block dash_content %}
+  <p><a href="{{ url_for('web-dashboard') }}">&larr; Back to ward board</a></p>
+  {% if not orders %}
+    <p class="dash-note">No pending lab orders. 🎉</p>
+  {% else %}
+    {% for o in orders %}
+      <article>
+        <header><strong>{{ o.test_name }}</strong> ({{ o.test_code }}) — order #{{ o.id }}</header>
+
+        <div id="lab-result-{{ o.id }}">
+          <p class="dash-note">No results recorded yet.</p>
+        </div>
+
+        <form
+          hx-post="{{ url_for('web-record-lab-result', lab_order_id=o.id) }}"
+          hx-target="#lab-result-{{ o.id }}"
+          hx-swap="innerHTML"
+        >
+          <div class="grid">
+            <input type="text" name="analyte" placeholder="Analyte (e.g. Hemoglobin)" required />
+            <input type="number" step="any" name="value" placeholder="Value" required />
+            <input type="text" name="unit" placeholder="Unit" />
+          </div>
+          <div class="grid">
+            <input type="number" step="any" name="reference_low" placeholder="Ref low" />
+            <input type="number" step="any" name="reference_high" placeholder="Ref high" />
+            <button type="submit">Record result</button>
+          </div>
+        </form>
+      </article>
+    {% endfor %}
+  {% endif %}
+{% endblock %}

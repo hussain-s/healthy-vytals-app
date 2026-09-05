@@ -62,3 +62,29 @@ def record_audit(
     else:
         session.flush()
     return entry
+
+
+def list_audit(
+    session: Session,
+    *,
+    actor_id: int | None = None,
+    patient_id: int | None = None,
+    action: str | None = None,
+    limit: int = 100,
+) -> list[AuditLog]:
+    """Return recent audit rows, newest first, with optional filters (story E2).
+
+    Read-only. Authorization (admin-only) is enforced by the caller/route; this is
+    just the query. Filters narrow by actor, patient, or action substring.
+    """
+    from sqlalchemy import select
+
+    stmt = select(AuditLog)
+    if actor_id is not None:
+        stmt = stmt.where(AuditLog.actor_id == actor_id)
+    if patient_id is not None:
+        stmt = stmt.where(AuditLog.patient_id == patient_id)
+    if action:
+        stmt = stmt.where(AuditLog.action.like(f"%{action}%"))
+    stmt = stmt.order_by(AuditLog.id.desc()).limit(limit)
+    return list(session.scalars(stmt).all())

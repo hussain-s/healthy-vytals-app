@@ -74,9 +74,12 @@ def make_user(db_sessionmaker: sessionmaker[Session]):
 @pytest.mark.parametrize(
     "role,marker",
     [
-        (Role.DOCTOR, "Doctor dashboard"),
-        (Role.NURSE, "Nurse dashboard"),
-        (Role.ADMIN, "Admin dashboard"),
+        # Each role's dashboard <title> starts "<Role> — HealthyVytals"; the role
+        # badge in the app-shell sidebar also names the role. Both are stable
+        # across dashboard rebuilds, unlike the (evolving) page heading.
+        (Role.DOCTOR, "Doctor — HealthyVytals"),
+        (Role.NURSE, "Nurse — HealthyVytals"),
+        (Role.ADMIN, "Admin — HealthyVytals"),
     ],
 )
 def test_each_role_lands_on_its_dashboard(

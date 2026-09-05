@@ -157,3 +157,21 @@ def test_provision_staff_rejects_duplicate_email(session: Session) -> None:
             admin_id=1,
             payload=UserCreate(email="taken@example.com", password="longenough1", role=Role.NURSE),
         )
+
+
+def test_set_user_active_toggles_and_audits(session: Session) -> None:
+    from app.models.audit import AuditLog
+
+    user = _register(session, "toggle@example.com")
+    auth_service.set_user_active(session, admin_id=999, user_id=user.id, is_active=False)
+    assert user.is_active is False
+    actions = session.scalars(select(AuditLog.action).where(AuditLog.action == "user.deactivate")).all()
+    assert list(actions)
+
+
+def test_admin_cannot_deactivate_self(session: Session) -> None:
+    from app.core.exceptions import PermissionDenied
+
+    admin = _register(session, "admin2@example.com")
+    with pytest.raises(PermissionDenied):
+        auth_service.set_user_active(session, admin_id=admin.id, user_id=admin.id, is_active=False)

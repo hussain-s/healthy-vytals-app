@@ -1,9 +1,19 @@
 {% extends "dashboard/_base.html" %}
 
-{% block title %}Admin dashboard — HealthyVytals{% endblock %}
-{% block dash_title %}Administrator{% endblock %}
+{% block title %}Admin — HealthyVytals{% endblock %}
+{% block dash_title %}Overview{% endblock %}
+{% block dash_subtitle %}<p>{{ user.email }}</p>{% endblock %}
 
 {% block dash_content %}
-  <p>Manage user accounts and review the PHI-access audit log.</p>
-  <p class="dash-note">User management and the audit log appear here.</p>
+  <div class="metric-grid">
+    <article><div class="metric-value">{{ total_users }}</div><div class="metric-label">Total users</div></article>
+    {% for role, count in role_counts.items() %}
+      <article><div class="metric-value">{{ count }}</div><div class="metric-label">{{ role }}s</div></article>
+    {% endfor %}
+  </div>
+  <p>
+    <a href="{{ url_for('web-admin-users') }}" role="button">Manage users</a>
+    <a href="{{ url_for('web-admin-audit') }}" role="button" class="secondary outline">View audit log</a>
+  </p>
+  <p class="dash-note">Admins manage accounts and review the PHI-access audit log; they have no clinical authoring rights.</p>
 {% endblock %}

@@ -22,6 +22,7 @@ from app.repositories.prescription_repository import (
     MedicationRepository,
     PrescriptionRepository,
 )
+from app.services import notification_service
 from app.services.audit_service import record_audit
 
 
@@ -116,6 +117,14 @@ def prescribe(
         resource_type="prescription",
         resource_id=prescription.id,
         patient_id=encounter.patient_id,
+    )
+    # Alert the patient that a new prescription was written (in-app feed, M9).
+    notification_service.notify(
+        session,
+        user_id=encounter.patient_id,
+        event_type="prescription.created",
+        message=f"A new prescription was added ({medication.name}).",
+        link="/clinical/prescriptions",
     )
     return prescription
 

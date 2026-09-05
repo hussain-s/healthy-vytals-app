@@ -1,0 +1,51 @@
+{% extends "dashboard/_base.html" %}
+
+{% block title %}Admin — Users — HealthyVytals{% endblock %}
+{% block dash_title %}User management{% endblock %}
+
+{% block dash_content %}
+  {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+
+  <article>
+    <header><strong>Provision a staff account</strong></header>
+    <form method="post" action="{{ url_for('web-admin-provision') }}">
+      <div class="grid">
+        <input type="email" name="email" placeholder="Email" required />
+        <input type="password" name="password" placeholder="Password (min 8)" minlength="8" required />
+        <select name="role" required>
+          {% for r in roles %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+        </select>
+      </div>
+      <button type="submit">Create account</button>
+    </form>
+    <small class="dash-note">Patients self-register; only doctor/nurse/admin are provisioned here.</small>
+  </article>
+
+  <h3>All accounts</h3>
+  <table>
+    <thead>
+      <tr><th>Email</th><th>Role</th><th>Status</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+        <tr>
+          <td>{{ u.email }}</td>
+          <td>{{ u.role.value }}</td>
+          <td>{% if u.is_active %}active{% else %}<em>deactivated</em>{% endif %}</td>
+          <td>
+            {% if u.id != user.id %}
+              <form method="post" action="{{ url_for('web-admin-toggle-user', user_id=u.id) }}">
+                <input type="hidden" name="is_active" value="{{ 'false' if u.is_active else 'true' }}" />
+                <button type="submit" class="outline {{ 'secondary' if u.is_active else '' }}">
+                  {{ 'Deactivate' if u.is_active else 'Reactivate' }}
+                </button>
+              </form>
+            {% else %}
+              <small class="dash-note">(you)</small>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

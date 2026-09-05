@@ -1,0 +1,20 @@
+{% extends "dashboard/_base.html" %}
+
+{% block title %}My lab results — HealthyVytals{% endblock %}
+{% block dash_title %}My lab results{% endblock %}
+
+{% block dash_content %}
+  <p><a href="{{ url_for('web-dashboard') }}">&larr; Back to dashboard</a></p>
+  {% if not lab_rows %}
+    <p class="dash-note">No lab orders yet.</p>
+  {% else %}
+    {% for row in lab_rows %}
+      <article>
+        <header><strong>{{ row.order.test_name }}</strong> ({{ row.order.test_code }}) — {{ row.order.status }}</header>
+        {% with results = row.results, error = None %}
+          {% include "labs/partials/result_list.html" %}
+        {% endwith %}
+      </article>
+    {% endfor %}
+  {% endif %}
+{% endblock %}

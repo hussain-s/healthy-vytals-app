@@ -1,0 +1,22 @@
+{#
+  HTMX-swappable list of the user's message threads (inbox).
+#}
+{% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+{% if threads %}
+  {% for row in threads %}
+    <article>
+      <header>
+        <a href="{{ url_for('web-thread', thread_id=row.thread.id) }}">
+          <strong>{{ row.counterparty.email if row.counterparty else "Unknown" }}</strong>
+        </a>
+        {% if row.thread.subject %}— {{ row.thread.subject }}{% endif %}
+        <small class="dash-note">({{ row.message_count }} message{{ "s" if row.message_count != 1 }})</small>
+      </header>
+      {% if row.last_message %}
+        <p>{{ row.last_message.body }}</p>
+      {% endif %}
+    </article>
+  {% endfor %}
+{% else %}
+  <p class="dash-note">No conversations yet.</p>
+{% endif %}

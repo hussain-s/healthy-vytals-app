@@ -1,0 +1,33 @@
+{% extends "dashboard/_base.html" %}
+
+{% block title %}Messages — HealthyVytals{% endblock %}
+{% block dash_title %}Messages{% endblock %}
+{% block dash_subtitle %}<p>Conversations with your care team.</p>{% endblock %}
+
+{% block dash_content %}
+  <p><a href="{{ url_for('web-dashboard') }}">&larr; Back to dashboard</a></p>
+
+  <h3>New message</h3>
+  <form
+    hx-post="{{ url_for('web-compose-message') }}"
+    hx-target="#thread-list"
+    hx-swap="innerHTML"
+  >
+    <div class="grid">
+      <select name="counterparty_id" required>
+        <option value="" disabled selected>Choose a recipient…</option>
+        {% for c in contacts %}
+          <option value="{{ c.id }}">{{ c.email }} ({{ c.role.value }})</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="subject" placeholder="Subject (optional)" />
+    </div>
+    <textarea name="body" placeholder="Write a message…" required></textarea>
+    <button type="submit">Send</button>
+  </form>
+
+  <h3>Your conversations</h3>
+  <div id="thread-list">
+    {% include "messages/partials/thread_list.html" %}
+  </div>
+{% endblock %}

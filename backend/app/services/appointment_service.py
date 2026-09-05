@@ -29,6 +29,7 @@ from app.domain.scheduling_rules import (
 )
 from app.models.scheduling import Appointment, AvailabilitySlot
 from app.repositories.appointment_repository import AppointmentRepository, SlotRepository
+from app.services import notification_service
 from app.services.audit_service import record_audit
 
 # Transitions that release the slot back to bookable when applied.
@@ -127,6 +128,14 @@ def book_appointment(
         resource_id=appointment.id,
         patient_id=patient_id,
     )
+    # Alert the doctor that a new appointment was requested (in-app feed, M9).
+    notification_service.notify(
+        session,
+        user_id=slot.doctor_id,
+        event_type="appointment.booked",
+        message="A patient booked an appointment with you.",
+        link="/dashboard",
+    )
     return appointment
 
 
@@ -189,5 +198,17 @@ def change_status(
         resource_type="appointment",
         resource_id=appointment.id,
         patient_id=appointment.patient_id,
+    )
+    # Notify the *other* party of a status change so both sides stay informed
+    # (e.g. the doctor when a patient cancels, or the patient when staff do). M9.
+    recipient_id = (
+        appointment.doctor_id if actor_id == appointment.patient_id else appointment.patient_id
+    )
+    notification_service.notify(
+        session,
+        user_id=recipient_id,
+        event_type=f"appointment.{transition.value}",
+        message=f"An appointment was {transition.value.replace('_', ' ')}.",
+        link="/dashboard",
     )
     return appointment

@@ -63,5 +63,26 @@
       </label>
       <button type="submit">Prescribe</button>
     </form>
+
+    <h3>Labs</h3>
+    <div id="labs">
+      {% with error = None %}
+        {% include "labs/partials/order_list.html" %}
+      {% endwith %}
+    </div>
+
+    <h4>Order a lab</h4>
+    <form
+      hx-post="{{ url_for('web-order-lab', encounter_id=encounter.id) }}"
+      hx-target="#labs"
+      hx-swap="innerHTML"
+    >
+      <div class="grid">
+        <input type="text" name="test_code" placeholder="Code (e.g. CBC)" required />
+        <input type="text" name="test_name" placeholder="Test name" required />
+      </div>
+      <input type="text" name="notes" placeholder="Notes (optional)" />
+      <button type="submit">Order lab</button>
+    </form>
   </section>
 {% endblock %}

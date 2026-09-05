@@ -1,9 +1,42 @@
 {% extends "dashboard/_base.html" %}
 
-{% block title %}Nurse dashboard — HealthyVytals{% endblock %}
-{% block dash_title %}Nurse {{ user.email }}{% endblock %}
+{% block title %}Nurse — HealthyVytals{% endblock %}
+{% block dash_title %}Ward board{% endblock %}
+{% block dash_subtitle %}<p>{{ user.email }}</p>{% endblock %}
 
 {% block dash_content %}
-  <p>View the ward schedule, check patients in, and record vitals.</p>
-  <p class="dash-note">The ward schedule appears here.</p>
+  <div class="metric-grid">
+    <article><div class="metric-value">{{ awaiting_count }}</div><div class="metric-label">Awaiting check-in</div></article>
+    <article><div class="metric-value">{{ total_count }}</div><div class="metric-label">Total appointments</div></article>
+  </div>
+
+  <h3>Today's ward</h3>
+  {% if not appointments %}
+    <p class="dash-note">No appointments on the ward yet.</p>
+  {% else %}
+    <table>
+      <thead>
+        <tr><th>When</th><th>Patient</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for a in appointments %}
+          <tr>
+            <td>{{ a.start_at.strftime("%b %d, %H:%M") }}</td>
+            <td>{{ a.patient_email }}</td>
+            <td>{{ a.status.value }}</td>
+            <td class="ward-actions">
+              {% if a.status.value == "confirmed" %}
+                <form method="post" action="{{ url_for('web-check-in', appointment_id=a.id) }}">
+                  <button type="submit" class="outline">Check in</button>
+                </form>
+              {% endif %}
+              {% if a.status.value in ["checked_in", "in_progress", "confirmed"] %}
+                <a href="{{ url_for('web-vitals-form', appointment_id=a.id) }}" role="button" class="secondary outline">Record vitals</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
 {% endblock %}

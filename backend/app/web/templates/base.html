@@ -1,27 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}HealthyVytals{% endblock %}</title>
+    <!-- Vendored Pico.css (classless framework, no build step) + app overrides. -->
+    <link rel="stylesheet" href="{{ url_for('web-static', path='pico.min.css') }}" />
     <link rel="stylesheet" href="{{ url_for('web-static', path='app.css') }}" />
     <!-- HTMX is vendored (no CDN, no Node). Enables partial page updates. -->
     <script src="{{ url_for('web-static', path='htmx.min.js') }}" defer></script>
   </head>
   <body>
-    <header class="site-header">
-      <a class="brand" href="{{ url_for('web-landing') }}">HealthyVytals</a>
-      <nav class="site-nav">
-        {% block nav %}{% endblock %}
-      </nav>
-    </header>
-
-    <main class="site-main">
-      {% block content %}{% endblock %}
-    </main>
-
-    <footer class="site-footer">
-      <small>HealthyVytals — local-first medical portal (educational reference app).</small>
-    </footer>
+    {% block body %}
+      <header class="container site-header">
+        <a class="brand" href="{{ url_for('web-landing') }}">🩺 HealthyVytals</a>
+        <nav>
+          <ul>{% block nav %}{% endblock %}</ul>
+        </nav>
+      </header>
+      <main class="container">
+        {% block content %}{% endblock %}
+      </main>
+      <footer class="container site-footer">
+        <small>HealthyVytals — local-first medical portal (educational reference app).</small>
+      </footer>
+    {% endblock %}
   </body>
 </html>

@@ -21,6 +21,9 @@ PROTECTED_GET = [
     "/appointments/mine",
     "/clinical/history",
     "/clinical/prescriptions",
+    "/clinical/labs",
+    "/admin/users",
+    "/admin/audit",
 ]
 
 # Public pages that render for anyone.
@@ -47,11 +50,14 @@ def test_landing_nav_shows_login_when_anonymous(client: TestClient) -> None:
 
 
 def test_landing_after_login_flows_to_dashboard(client: TestClient) -> None:
-    # A registered patient reaches their dashboard, which shows a logout control.
+    # A registered patient reaches their dashboard, which shows a logout control
+    # and the patient overview home (quick actions + metric tiles).
     client.post("/register", data={"email": "pat@example.com", "password": PW})
     dash = client.get("/dashboard")
     assert dash.status_code == 200
     assert "Log out" in dash.text
+    assert "Upcoming appointments" in dash.text  # patient overview metric
+    assert "Book an appointment" in dash.text
 
 
 def test_unknown_page_is_404(client: TestClient) -> None:

@@ -38,11 +38,13 @@ def _age_years(dob: date | None, on: datetime) -> int:
     return max(0, years)
 
 
-def open_encounter(session: Session, doctor_id: int, appointment_id: int) -> Encounter:
-    """Open (or return the existing) encounter for an appointment (story C2).
+def _ensure_encounter(session: Session, appointment_id: int, actor_id: int) -> Encounter:
+    """Return the appointment's encounter, creating it if needed (append-only).
 
-    One encounter per appointment; if already opened, returns it (idempotent) so a
-    doctor re-entering the visit doesn't create duplicates. Audits encounter.open.
+    The encounter is always attributed to the appointment's assigned doctor,
+    regardless of who triggers creation — so a nurse recording triage vitals can
+    bring the encounter into being without owning it. Audits encounter.open only
+    when it actually creates one. Callers enforce their own role/ownership rules.
     """
     repo = EncounterRepository(session)
     existing = repo.get_by_appointment(appointment_id)
@@ -54,26 +56,52 @@ def open_encounter(session: Session, doctor_id: int, appointment_id: int) -> Enc
     appointment = AppointmentRepository(session).get(appointment_id)
     if appointment is None:
         raise NotFound(f"No such appointment: {appointment_id}")
-    if appointment.doctor_id != doctor_id:
-        raise PermissionDenied("You are not the doctor for this appointment")
 
     encounter = repo.add(
         Encounter(
             appointment_id=appointment_id,
             patient_id=appointment.patient_id,
-            doctor_id=doctor_id,
+            doctor_id=appointment.doctor_id,
             opened_at=datetime.now(timezone.utc),
         )
     )
     record_audit(
         session,
         action="encounter.open",
-        actor_id=doctor_id,
+        actor_id=actor_id,
         resource_type="encounter",
         resource_id=encounter.id,
         patient_id=appointment.patient_id,
     )
     return encounter
+
+
+def open_encounter(session: Session, doctor_id: int, appointment_id: int) -> Encounter:
+    """Open (or return the existing) encounter for an appointment (story C2).
+
+    Doctor-facing: the caller must be the appointment's assigned doctor. Idempotent
+    (returns an existing encounter). Delegates creation to :func:`_ensure_encounter`.
+    """
+    from app.repositories.appointment_repository import AppointmentRepository
+
+    appointment = AppointmentRepository(session).get(appointment_id)
+    if appointment is None:
+        raise NotFound(f"No such appointment: {appointment_id}")
+    if appointment.doctor_id != doctor_id:
+        raise PermissionDenied("You are not the doctor for this appointment")
+    return _ensure_encounter(session, appointment_id, actor_id=doctor_id)
+
+
+def record_vitals_for_appointment(
+    session: Session, nurse_id: int, appointment_id: int, reading: VitalsReading
+) -> Vitals:
+    """Nurse triage: ensure the appointment's encounter exists, then record vitals.
+
+    Models real triage — the nurse records vitals against the appointment before
+    the doctor's consult. Reuses :func:`record_vitals` for the age-flagging + audit.
+    """
+    encounter = _ensure_encounter(session, appointment_id, actor_id=nurse_id)
+    return record_vitals(session, nurse_id, encounter.id, reading)
 
 
 def record_vitals(

@@ -20,10 +20,12 @@ from fastapi.staticfiles import StaticFiles
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
+from app.web.admin import router as web_admin_router
 from app.web.appointments import router as web_appointments_router
 from app.web.auth import router as web_auth_router
 from app.web.clinical import router as web_clinical_router
 from app.web.deps import _RedirectToLogin, _handle_login_redirect
+from app.web.messaging import router as web_messaging_router
 from app.web.router import router as web_router
 
 # Location of the web layer's static assets (app.css, vendored htmx.min.js).
@@ -70,6 +72,8 @@ def create_app() -> FastAPI:
     app.include_router(web_auth_router)
     app.include_router(web_appointments_router)
     app.include_router(web_clinical_router)
+    app.include_router(web_admin_router)
+    app.include_router(web_messaging_router)
     app.include_router(web_router)
 
     # NOTE: audit middleware is wired in a later Phase 1 slice.

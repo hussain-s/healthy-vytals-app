@@ -1,0 +1,17 @@
+{#
+  HTMX-swappable message history for a thread, oldest first. The current user's
+  own messages are marked so the template can style them differently.
+#}
+{% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+{% if messages %}
+  <ul class="message-list">
+    {% for m in messages %}
+      <li class="{{ 'message-mine' if m.sender_id == user.id else 'message-theirs' }}">
+        <p>{{ m.body }}</p>
+        <small class="dash-note">{{ m.created_at.strftime("%b %d, %H:%M") }}</small>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="dash-note">No messages yet. Say hello.</p>
+{% endif %}

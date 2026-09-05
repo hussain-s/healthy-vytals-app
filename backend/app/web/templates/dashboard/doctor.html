@@ -1,9 +1,41 @@
 {% extends "dashboard/_base.html" %}
 
-{% block title %}Doctor dashboard — HealthyVytals{% endblock %}
-{% block dash_title %}Dr. {{ user.email }}{% endblock %}
+{% block title %}Doctor — HealthyVytals{% endblock %}
+{% block dash_title %}Worklist{% endblock %}
+{% block dash_subtitle %}<p>Dr. {{ user.email }}</p>{% endblock %}
 
 {% block dash_content %}
-  <p>Publish availability, manage your calendar, and run consultations.</p>
-  <p class="dash-note">Your calendar and slot management appear here.</p>
+  <div class="metric-grid">
+    <article><div class="metric-value">{{ open_count }}</div><div class="metric-label">Open appointments</div></article>
+    <article><div class="metric-value">{{ patient_count }}</div><div class="metric-label">Patients</div></article>
+    <article><div class="metric-value">{{ appointments|length }}</div><div class="metric-label">Total scheduled</div></article>
+  </div>
+
+  <h3>Today's worklist</h3>
+  {% if not appointments %}
+    <p class="dash-note">No appointments scheduled. Publish availability so patients can book.</p>
+  {% else %}
+    <table>
+      <thead>
+        <tr><th>When</th><th>Patient</th><th>Reason</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for a in appointments %}
+          <tr>
+            <td>{{ a.start_at.strftime("%b %d, %H:%M") }}</td>
+            <td>{{ a.patient_email }}</td>
+            <td>{{ a.reason or "—" }}</td>
+            <td>{{ a.status.value }}</td>
+            <td>
+              {% if a.status.value in ["confirmed", "checked_in", "in_progress"] %}
+                <form method="post" action="{{ url_for('web-open-encounter', appointment_id=a.id) }}">
+                  <button type="submit" class="outline">Open encounter</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
 {% endblock %}

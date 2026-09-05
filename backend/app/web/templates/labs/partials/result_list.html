@@ -1,0 +1,19 @@
+{#
+  HTMX-swappable list of a lab order's results. Abnormal values are flagged.
+#}
+{% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+{% if results %}
+  <ul class="lab-results">
+    {% for r in results %}
+      <li>
+        {{ r.analyte }}: <strong>{{ r.value }}{% if r.unit %} {{ r.unit }}{% endif %}</strong>
+        {% if r.reference_low is not none or r.reference_high is not none %}
+          <small class="dash-note">(ref {{ r.reference_low if r.reference_low is not none else "—" }}–{{ r.reference_high if r.reference_high is not none else "—" }})</small>
+        {% endif %}
+        {% if r.abnormal %}<span class="flag">⚠ abnormal</span>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="dash-note">No results recorded yet.</p>
+{% endif %}

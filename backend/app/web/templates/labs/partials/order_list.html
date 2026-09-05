@@ -1,0 +1,19 @@
+{#
+  HTMX-swappable list of an encounter's lab orders + their results (doctor view).
+#}
+{% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+{% if lab_rows %}
+  {% for row in lab_rows %}
+    <article>
+      <header>
+        <strong>{{ row.order.test_name }}</strong> ({{ row.order.test_code }})
+        — <span>{{ row.order.status }}</span>
+      </header>
+      {% with results = row.results, error = None %}
+        {% include "labs/partials/result_list.html" %}
+      {% endwith %}
+    </article>
+  {% endfor %}
+{% else %}
+  <p class="dash-note">No labs ordered on this encounter.</p>
+{% endif %}

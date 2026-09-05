@@ -1,0 +1,29 @@
+{% extends "dashboard/_base.html" %}
+
+{% block title %}Record vitals — HealthyVytals{% endblock %}
+{% block dash_title %}Record vitals{% endblock %}
+{% block dash_subtitle %}<p>Appointment #{{ appointment.id }}</p>{% endblock %}
+
+{% block dash_content %}
+  <p><a href="{{ url_for('web-dashboard') }}">&larr; Back to ward board</a></p>
+
+  <div id="vitals-result" aria-live="polite"></div>
+
+  <form
+    hx-post="{{ url_for('web-vitals-submit', appointment_id=appointment.id) }}"
+    hx-target="#vitals-result"
+    hx-swap="innerHTML"
+  >
+    <p class="dash-note">Leave a field blank if not measured. Out-of-range values are flagged by patient age.</p>
+    <div class="grid">
+      <label>Heart rate (bpm)<input type="number" name="heart_rate" min="0" max="400" /></label>
+      <label>Resp rate (/min)<input type="number" name="resp_rate" min="0" max="120" /></label>
+    </div>
+    <div class="grid">
+      <label>Systolic BP (mmHg)<input type="number" name="systolic_bp" min="0" max="400" /></label>
+      <label>SpO₂ (%)<input type="number" name="spo2" min="0" max="100" /></label>
+    </div>
+    <label>Temperature (°C)<input type="number" step="0.1" name="temp_c" min="20" max="45" /></label>
+    <button type="submit">Save vitals</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "dashboard/_base.html" %}
+
+{% block title %}Notifications — HealthyVytals{% endblock %}
+{% block dash_title %}Notifications{% endblock %}
+
+{% block dash_content %}
+  <p><a href="{{ url_for('web-dashboard') }}">&larr; Back to dashboard</a></p>
+
+  <form
+    hx-post="{{ url_for('web-notifications-read-all') }}"
+    hx-target="#notification-feed"
+    hx-swap="innerHTML"
+  >
+    <button type="submit" class="secondary outline">Mark all read</button>
+  </form>
+
+  <div id="notification-feed">
+    {% include "notifications/partials/feed_list.html" %}
+  </div>
+{% endblock %}

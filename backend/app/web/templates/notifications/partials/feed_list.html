@@ -1,0 +1,25 @@
+{#
+  HTMX-swappable notification feed, newest first. Unread rows are marked and
+  offer a "mark read" action; each row deep-links to the relevant page.
+#}
+{% if notifications %}
+  <ul class="notification-feed">
+    {% for n in notifications %}
+      <li class="{{ 'notification-unread' if n.read_at is none else 'notification-read' }}">
+        {% if n.link %}<a href="{{ n.link }}">{{ n.message }}</a>{% else %}{{ n.message }}{% endif %}
+        <small class="dash-note">{{ n.created_at.strftime("%b %d, %H:%M") }} · {{ n.event_type }}</small>
+        {% if n.read_at is none %}
+          <button
+            type="button"
+            class="outline"
+            hx-post="{{ url_for('web-notification-read', notification_id=n.id) }}"
+            hx-target="#notification-feed"
+            hx-swap="innerHTML"
+          >Mark read</button>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="dash-note">No notifications.</p>
+{% endif %}

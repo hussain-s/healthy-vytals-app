@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.core.errors import AuthenticationError, Conflict
+from app.core.errors import AuthenticationError, Conflict, NotFound, PermissionDenied
 from app.core.roles import Role
 from app.core.security import (
     TokenError,
@@ -208,3 +208,35 @@ def refresh_tokens(session: Session, refresh_token: str) -> TokenPair:
         resource_id=user.id,
     )
     return _issue_tokens(user)
+
+
+def list_all_users(session: Session) -> list[User]:
+    """Return all user accounts, ordered by email (admin console, story E1)."""
+    from sqlalchemy import select
+
+    return list(session.scalars(select(User).order_by(User.email)).all())
+
+
+def set_user_active(session: Session, admin_id: int, user_id: int, is_active: bool) -> User:
+    """Activate or deactivate an account (admin only, story E1).
+
+    Deactivation is a soft-disable (never a delete) so audit/history references
+    stay valid; a deactivated user cannot log in or resolve a session. An admin
+    cannot deactivate their own account (avoids locking themselves out). Audits
+    user.activate / user.deactivate.
+    """
+    target = UserRepository(session).get(user_id)
+    if target is None:
+        raise NotFound(f"No such user: {user_id}")
+    if not is_active and target.id == admin_id:
+        raise PermissionDenied("You cannot deactivate your own account")
+    target.is_active = is_active
+    session.flush()
+    record_audit(
+        session,
+        action="user.activate" if is_active else "user.deactivate",
+        actor_id=admin_id,
+        resource_type="user",
+        resource_id=target.id,
+    )
+    return target

@@ -1,20 +1,68 @@
 {% extends "base.html" %}
 
 {#
-  Shared shell for every role dashboard: a greeting, a logout control, and a
-  content block each role fills in. Keeps the four dashboards consistent and DRY.
+  Authenticated app shell: a fixed top bar + a role-aware sidebar of navigation
+  links, with a content area each page fills in. The sidebar links are chosen by
+  the current user's role. Every link points at a route that exists; new
+  destinations are added here as their slices land.
 #}
 
-{% block nav %}
-  <span class="nav-user">{{ user.email }} ({{ user.role.value }})</span>
-  <form method="post" action="{{ url_for('web-logout') }}" class="nav-logout">
-    <button type="submit" class="linklike">Log out</button>
-  </form>
-{% endblock %}
+{% set nav_by_role = {
+  "patient": [
+    ("web-dashboard", "Home"),
+    ("web-book", "Book appointment"),
+    ("web-my-appointments", "My appointments"),
+    ("web-my-history", "Medical history"),
+    ("web-my-prescriptions", "Prescriptions"),
+    ("web-my-labs", "Lab results"),
+    ("web-messages", "Messages"),
+    ("web-notifications", "Notifications"),
+  ],
+  "doctor": [
+    ("web-dashboard", "Worklist"),
+    ("web-messages", "Messages"),
+    ("web-notifications", "Notifications"),
+  ],
+  "nurse": [
+    ("web-dashboard", "Ward board"),
+    ("web-lab-queue", "Lab queue"),
+    ("web-messages", "Messages"),
+    ("web-notifications", "Notifications"),
+  ],
+  "admin": [
+    ("web-dashboard", "Overview"),
+    ("web-admin-users", "Users"),
+    ("web-admin-audit", "Audit log"),
+  ],
+} %}
 
-{% block content %}
-  <section class="dashboard">
-    <h1>{% block dash_title %}Dashboard{% endblock %}</h1>
-    {% block dash_content %}{% endblock %}
-  </section>
+{% block body %}
+  <div class="app-shell">
+    <aside class="app-sidebar">
+      <a class="brand" href="{{ url_for('web-dashboard') }}">🩺 HealthyVytals</a>
+      <nav>
+        <ul>
+          {% for route, label in nav_by_role.get(user.role.value, []) %}
+            <li><a href="{{ url_for(route) }}">{{ label }}</a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+      <div class="app-sidebar-foot">
+        <small>{{ user.email }}<br /><span class="role-badge">{{ user.role.value }}</span></small>
+        <form method="post" action="{{ url_for('web-logout') }}">
+          <button type="submit" class="secondary outline">Log out</button>
+        </form>
+      </div>
+    </aside>
+
+    <main class="app-main container-fluid">
+      {% block dash_header %}
+        <hgroup>
+          <h2>{% block dash_title %}Dashboard{% endblock %}</h2>
+          {% block dash_subtitle %}{% endblock %}
+        </hgroup>
+      {% endblock %}
+      {% block dash_content %}{% endblock %}
+    </main>
+  </div>
 {% endblock %}

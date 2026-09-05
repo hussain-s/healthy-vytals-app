@@ -143,6 +143,28 @@ def test_sensitive_encounter_hidden_from_staff_without_consent(session: Session)
     assert len(clinical_service.get_patient_history(session, doc.id, Role.DOCTOR, pat.id)) == 1
 
 
+def test_record_vitals_for_appointment_creates_encounter(session: Session) -> None:
+    """Nurse triage records vitals against an appointment, creating its encounter."""
+    doc, pat, appt = _setup(session, patient_dob=date(1986, 1, 1))
+    nurse = User(email="nurse@example.com", password_hash="h", role=Role.NURSE)
+    session.add(nurse)
+    session.flush()
+
+    # No encounter yet.
+    from app.repositories.encounter_repository import EncounterRepository
+    assert EncounterRepository(session).get_by_appointment(appt.id) is None
+
+    vitals = clinical_service.record_vitals_for_appointment(
+        session, nurse.id, appt.id, VitalsReading(heart_rate=150)
+    )
+    # Encounter created (attributed to the appointment's doctor) + vitals flagged.
+    enc = EncounterRepository(session).get_by_appointment(appt.id)
+    assert enc is not None
+    assert enc.doctor_id == doc.id
+    assert vitals.encounter_id == enc.id
+    assert "heart_rate_high" in vitals.flags
+
+
 def test_addendum_requires_clinical_staff(session: Session) -> None:
     doc, pat, _ = _setup(session)
     # Doctor can add.

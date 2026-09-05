@@ -41,6 +41,9 @@ def _import_all_models() -> None:
     from app.models import (  # noqa: F401  (register tables)
         audit,
         clinical,
+        lab,
+        messaging,
+        notification,
         prescription,
         profile,
         scheduling,
