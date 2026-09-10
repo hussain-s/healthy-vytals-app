@@ -309,3 +309,26 @@ def get_vitals_series(
         for v in repo.vitals_for_patient(patient_id)
         if v.encounter_id in visible_encounter_ids
     ]
+
+
+def amend_diagnosis(
+    session: Session, doctor_id: int, diagnosis_id: int, description: str
+) -> Diagnosis:
+    """Amend an existing diagnosis's description (NEW feature).
+
+    Lets the owning doctor fix the wording of a diagnosis they authored. The
+    encounter's doctor must match the caller.
+    """
+    repo = EncounterRepository(session)
+    diagnosis = session.get(Diagnosis, diagnosis_id)
+    if diagnosis is None:
+        raise NotFound(f"No such diagnosis: {diagnosis_id}")
+
+    encounter = repo.get(diagnosis.encounter_id)
+    if encounter is None or encounter.doctor_id != doctor_id:
+        raise PermissionDenied("Only the encounter's doctor may amend this diagnosis")
+
+    # Update the diagnosis text to the corrected wording.
+    diagnosis.description = description
+    session.flush()
+    return diagnosis

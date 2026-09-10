@@ -18,6 +18,7 @@ from app.models.user import User
 from app.schemas.encounter import (
     AddendumCreate,
     AddendumOut,
+    DiagnosisAmend,
     DiagnosisCreate,
     DiagnosisOut,
     EncounterOpen,
@@ -131,3 +132,18 @@ def patient_history(
         session, viewer.id, viewer.role, patient_id
     )
     return [EncounterOut.model_validate(e) for e in encounters]
+
+
+@router.patch("/diagnoses/{diagnosis_id}", response_model=DiagnosisOut,
+              summary="Amend a diagnosis's description (owning doctor)")
+def amend_diagnosis(
+    diagnosis_id: int,
+    payload: DiagnosisAmend,
+    doctor: User = Depends(require_roles(Role.DOCTOR)),
+    session: Session = Depends(get_session),
+) -> DiagnosisOut:
+    """Correct the wording of an existing diagnosis."""
+    diagnosis = clinical_service.amend_diagnosis(
+        session, doctor.id, diagnosis_id, payload.description
+    )
+    return DiagnosisOut.model_validate(diagnosis)
