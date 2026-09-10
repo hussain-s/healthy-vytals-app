@@ -106,3 +106,13 @@ class AddendumOut(ORMModel):
     target_id: int
     author_id: int
     note: str
+
+
+class PatientSummaryOut(BaseModel):
+    """Compact clinical summary shown at the top of a patient chart."""
+
+    patient_id: int
+    email: str
+    encounter_count: int
+    active_prescription_count: int
+    latest_vitals: VitalsOut | None = None
