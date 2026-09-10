@@ -11,11 +11,13 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_roles
+from app.core.roles import Role
 from app.db.session import get_session
 from app.models.user import User
 from app.schemas.encounter import VitalsPoint, VitalsSeriesOut
-from app.services import clinical_service
+from app.schemas.user import UserOut
+from app.services import clinical_service, patient_search_service
 
 router = APIRouter(prefix="/patients", tags=["clinical"])
 
@@ -52,3 +54,15 @@ def vitals_series(
         for v in rows
     ]
     return VitalsSeriesOut(patient_id=patient_id, points=points)
+
+
+@router.get("/search", response_model=list[UserOut],
+            summary="Search patients by email (admin only)")
+def search_patients(
+    q: str,
+    admin: User = Depends(require_roles(Role.ADMIN)),
+    session: Session = Depends(get_session),
+) -> list[UserOut]:
+    """Return patients whose email matches ``q`` (admin roster lookup)."""
+    rows = patient_search_service.search_patients(session, q)
+    return [UserOut.model_validate(u) for u in rows]
