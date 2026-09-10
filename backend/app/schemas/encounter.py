@@ -106,3 +106,9 @@ class AddendumOut(ORMModel):
     target_id: int
     author_id: int
     note: str
+
+
+class DiagnosisAmend(BaseModel):
+    """Request body to amend a diagnosis's description (NEW feature)."""
+
+    description: str = Field(min_length=1, max_length=1000)
