@@ -11,11 +11,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_roles
+from app.core.roles import Role
 from app.db.session import get_session
 from app.models.user import User
-from app.schemas.encounter import VitalsPoint, VitalsSeriesOut
-from app.services import clinical_service
+from app.schemas.encounter import PatientSummaryOut, VitalsPoint, VitalsSeriesOut
+from app.services import clinical_service, patient_summary_service
 
 router = APIRouter(prefix="/patients", tags=["clinical"])
 
@@ -52,3 +53,15 @@ def vitals_series(
         for v in rows
     ]
     return VitalsSeriesOut(patient_id=patient_id, points=points)
+
+
+@router.get("/{patient_id}/summary", response_model=PatientSummaryOut,
+            summary="A patient's compact clinical summary (clinical staff)")
+def patient_summary(
+    patient_id: int,
+    staff: User = Depends(require_roles(Role.DOCTOR, Role.NURSE)),
+    session: Session = Depends(get_session),
+) -> PatientSummaryOut:
+    """Return a compact summary for the patient chart header."""
+    data = patient_summary_service.get_patient_summary(session, staff.id, patient_id)
+    return PatientSummaryOut.model_validate(data)
