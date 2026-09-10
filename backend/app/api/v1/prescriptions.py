@@ -14,7 +14,8 @@ from app.core.roles import Role
 from app.db.session import get_session
 from app.models.user import User
 from app.schemas.prescription import PrescribeRequest, PrescriptionOut
-from app.services import prescription_service
+from app.schemas.prescription import RefillRedeemOut
+from app.services import prescription_service, refill_service
 
 router = APIRouter(prefix="/prescriptions", tags=["prescriptions"])
 
@@ -65,3 +66,15 @@ def patient_prescriptions(
     """Return a patient's prescriptions for treating staff (story D5)."""
     rxs = prescription_service.list_for_patient(session, patient_id)
     return [PrescriptionOut.model_validate(r) for r in rxs]
+
+
+@router.post("/{prescription_id}/redeem", response_model=RefillRedeemOut,
+             summary="Redeem one refill on your prescription (patient only)")
+def redeem_refill(
+    prescription_id: int,
+    patient: User = Depends(require_roles(Role.PATIENT)),
+    session: Session = Depends(get_session),
+) -> RefillRedeemOut:
+    """Use one refill; returns the refills remaining. 409 if none remain."""
+    remaining = refill_service.redeem_refill(session, patient.id, prescription_id)
+    return RefillRedeemOut(prescription_id=prescription_id, refills_remaining=remaining)

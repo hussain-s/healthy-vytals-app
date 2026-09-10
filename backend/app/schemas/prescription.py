@@ -36,3 +36,10 @@ class MedicationOut(ORMModel):
     name: str
     drug_class: str | None
     is_controlled: bool
+
+
+class RefillRedeemOut(BaseModel):
+    """Result of redeeming a refill: the prescription and its remaining count."""
+
+    prescription_id: int
+    refills_remaining: int
